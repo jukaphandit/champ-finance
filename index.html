@@ -1,0 +1,2763 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Champ's Financial Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<!-- ============================================================ -->
+<!--  📊 DATA CONFIG — แก้ตรงนี้เพื่อปรับตัวเลขทั้ง Dashboard      -->
+<!--  ทุก section ของ dashboard ใช้ข้อมูลจาก object DATA นี้ทั้งหมด  -->
+<!-- ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+// ============================================================
+//  📊 GOOGLE SHEET CONFIG
+//  ════════════════════════════════════════════════════════════
+//  📌 Sheet ID จาก URL (ส่วนกลางที่ยาวๆ)
+//  Format: https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit
+// ============================================================
+const SHEET_ID = '1Mf9v5-91ceX-r2CjW3S3abH-Ic0WdxiUojXhJbCyFTA';
+const SHEET_NAME = 'Dashboard_Data';
+
+// URL สำหรับดึงข้อมูลแบบ CSV (ฟรี ไม่ต้อง API key)
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+
+// Storage object สำหรับ key-value ที่ดึงจาก Sheet
+let SHEET_DATA = {};
+
+// Helper: ดึงค่าจาก SHEET_DATA โดยใช้ key (ถ้าไม่เจอใช้ค่า fallback)
+function getVal(key, fallback = 0) {
+  const v = SHEET_DATA[key];
+  if (v === undefined || v === null || v === '') return fallback;
+
+  const cleaned = String(v)
+    .replace(/,/g, '')
+    .replace(/฿/g, '')
+    .replace(/บาท/g, '')
+    .replace(/s/g, '')
+    .trim();
+
+  const num = Number(cleaned);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+// Helper: ดึงค่าเป็น string
+function getStr(key, fallback = '—') {
+  const v = SHEET_DATA[key];
+  return (v === undefined || v === null || v === '') ? fallback : String(v);
+}
+
+// Async function: โหลดข้อมูลจาก Google Sheet
+async function loadSheetData() {
+  try {
+    const response = await fetch(SHEET_URL);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+
+    // Force UTF-8 decoding for Thai characters
+    const buffer = await response.arrayBuffer();
+    const decoder = new TextDecoder('utf-8');
+    const csvText = decoder.decode(buffer);
+
+    const parsed = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false  // เก็บเป็น string ก่อน แล้วแปลงตอน getVal
+    });
+
+    // Debug: log จำนวนแถว
+    console.log('📊 Parsed rows:', parsed.data.length);
+    if (parsed.data.length > 0) console.log('First row:', parsed.data[0]);
+
+    // แปลง array เป็น object { key: value, ... }
+    parsed.data.forEach(row => {
+      // Handle both 'key' and possible BOM-prefixed key
+      const keyName = row.key || row['\ufeffkey'] || row[Object.keys(row)[0]];
+      const valueField = row.value !== undefined ? row.value : row[Object.keys(row)[1]];
+      if (keyName) SHEET_DATA[keyName] = valueField;
+    });
+
+    console.log('✅ Loaded', Object.keys(SHEET_DATA).length, 'values from Sheet');
+    console.log('Sample - salary_base:', SHEET_DATA.salary_base);
+    return Object.keys(SHEET_DATA).length > 0;
+  } catch (err) {
+    console.warn('⚠️ Could not load from Sheet — using fallback values:', err.message);
+    return false;
+  }
+}
+</script>
+
+<script>
+// ============================================================
+//  📊 DATA CONFIG
+//  ════════════════════════════════════════════════════════════
+//  📌 Source: Google Sheets "Summary_Life_Summary_Champ"
+//      → Sheet "Dashboard_Data" (ดึง real-time จาก Sheet)
+//
+//  🔄 วิธีอัพเดท:
+//     แค่อัพเดท Sheet "1.Saraly" ตามปกติ → Dashboard_Data
+//     จะอัพเดทอัตโนมัติด้วย formula → Dashboard บนเว็บอัพเดทตาม
+//
+//  📅 อัพเดทล่าสุด: ดึงจาก Sheet
+// ============================================================
+const DATA = {
+  // ── ข้อมูลส่วนตัว ─────────────────────
+  profile: {
+    name: "Jukaphan Paopasert (Champ)",
+    age: 33,
+    company: "Daikin Industries Ltd. / DIT (Daikin Technology Innovation Center)",
+    position: "Product Management Lead — IoT Platform (MARUTTO)",
+    title: "Assistant Manager",
+    location: "Bangkok, Thailand",
+    email: "jukaphan.dit@gmail.com",
+    phone: "+66-84-767-3420",
+    education: "Bachelor of Engineering (Electrical) · Kasetsart University",
+    languages: "Thai (Native) · English (Professional) · Japanese (Professional)",
+    updatedDate: "25 Apr 2026"
+  },
+
+  // ── Career Path / Promotion History ─────────────────────
+  // ★ = Promotion milestone
+  careerPath: [
+    {
+      year: "2015",
+      role: "Engineer (EN)",
+      department: "DIT R&D — PCB Hardware Development",
+      desc: "เริ่มต้นที่ Daikin · พัฒนา PCB Hardware · Trained at Daikin Japan HQ · สร้างพื้นฐาน hardware design, EMC testing, system integration",
+      promotion: false,
+      icon: "🔧"
+    },
+    {
+      year: "2018",
+      role: "Senior Engineer (SE)",
+      department: "DIT R&D — Remote Controller Development",
+      desc: "★ ปรับเป็น SE · พัฒนา Remote Controller สำหรับเครื่องปรับอากาศ · Interface PCB Project (Australia)",
+      promotion: true,
+      icon: "📡"
+    },
+    {
+      year: "2021",
+      role: "Senior Engineer (SE) → SU",
+      department: "DIT R&D — Central Controller Development",
+      desc: "พัฒนา Central Controller · เริ่ม IoT Product & PoC · Acted as UI/UX lead for IoT web and mobile applications",
+      promotion: false,
+      icon: "🌐"
+    },
+    {
+      year: "2023",
+      role: "Supervisor (SU)",
+      department: "DIT — R&D IoT Product Planning & Develop",
+      desc: "★ ปรับเป็น SU · เริ่มงาน Product Management · MARUTTO IoT Platform · ทำงานกับ DHOS regional sales hub · AI Energy Control training",
+      promotion: true,
+      icon: "🚀"
+    },
+    {
+      year: "2026",
+      role: "Assistant Manager (AM)",
+      department: "DIT — Product Management Lead | IoT Platform & Business Solutions",
+      desc: "★★ ปรับเป็น AM · Product Strategy & Roadmap Ownership · Go-to-Market across Asia Oceania · Cross-functional leadership R&D-Sales-Customer",
+      promotion: true,
+      icon: "⭐",
+      current: true
+    }
+  ],
+
+  // ── Core Expertise ─────────────────────
+  expertise: [
+    "Product Strategy & Roadmap Ownership",
+    "IoT Platform & Subscription Business Model",
+    "Go-to-Market & Sales Enablement",
+    "PoC & Market Validation (B2B / Enterprise)",
+    "Cross-functional Leadership (R&D – Sales – Customer)",
+    "Data-driven Product Decisions & Sales Dashboards"
+  ],
+
+  // ── Daikin Provident Fund + Group Insurance ─────────────────────
+  // 📌 ตัวเลขมี 2 มุมมอง:
+  //   1. Market Value (Cash Sum R) = ฿805,630 → ใช้ใน Net Worth
+  //   2. Contribution Yearly (1.Saraly AZ) = ฿1,431,160/ปี → สำหรับวางแผนภาษี
+  daikinBenefits: {
+    totalBalance: 805630,                       // PVD TISCO Mark-to-market (Cash Sum R)
+    yearlyContribution: 191310,                 // ออมทรัพย์รวมต่อปี (1.Saraly AZ)
+    pvdSelf: {
+      label: "ออมทรัพย์ (ส่วนที่เราฝากเอง)",
+      monthlyContribution: 9942,                // 15% ของเงินเดือน
+      yearlyContribution: 114129,               // จาก Sheet
+      pctOfSalaryRange: "3% - 15%",
+      currentPct: 15,
+      note: "หักจากเงินเดือนทุกเดือน · % เพิ่มขึ้นตามตำแหน่ง · ลดหย่อนภาษีได้"
+    },
+    pvdCompany: {
+      label: "ไดกิ้นสมทบ (Company Match)",
+      monthlyContribution: 6628,
+      yearlyContribution: 77182,                // จาก Sheet
+      pctOfSalaryRange: "3% - 10%",
+      currentPct: 10,
+      note: "บริษัทสมทบให้ฟรี · ทำงาน 11 ปี = Vested 100% ✓"
+    },
+    groupInsurance: {
+      opd: 35000,
+      ipd: "ไม่ทราบวงเงิน",
+      lifeInsurance: "ไม่ทราบวงเงิน",
+      note: "ครอบคลุมพนักงาน · ออกจากงาน = สิ้นสุด · เช็ครายละเอียดที่ HR"
+    }
+  },
+
+  // ── โบนัสจริงประจำปี (จาก Sheet) ─────────────────────
+  // ⚠️ "Bonus ฿14,000" ในตาราง 1.Saraly แต่ละเดือน = เงินช่วยค่าบ้าน (ไม่ใช่โบนัส)
+  // โบนัสจริงๆ ออกในเดือน ธ.ค. เท่านั้น
+  // ── โบนัสจริงประจำปี (เฉพาะเดือน ธันวาคม) ─────────────────────
+  // 📌 ปี 2025 และก่อนหน้า = Actual (ได้รับจริงแล้ว)
+  // 📌 ปี 2026, 2027 = Forecast (คาดการณ์จากผลงาน + ตำแหน่ง)
+  // 📌 จะอัพเดทเป็นค่าจริงเมื่อรับโบนัส ธ.ค. ของแต่ละปี (ผ่าน Sheet bonus_dec_2026)
+  bonusHistory: [
+    { year: 2022, dec: 220000, role: "SE — IoT Product", actual: true },
+    { year: 2023, dec: 250000, role: "SE → SU", actual: true },
+    { year: 2024, dec: 444627, role: "SU", actual: true },
+    { year: 2025, dec: 553671, role: "SU / PM Lead", actual: true },
+    { year: 2026, dec: 417680, role: "★ AM (คาดการณ์)", current: true, forecast: true },
+    { year: 2027, dec: 480000, role: "AM (คาดการณ์)", forecast: true }
+  ],
+
+  // ── รายรับรายเดือน (THB) ─────────────────────
+  // 📌 จาก Sheet "1.Saraly" Apr 2026 onwards (หลังเป็น AM):
+  // - เงินเดือน Base: ฿65,580 + เบี้ยอายุงาน ฿700 + เบี้ยขยัน ฿1,500
+  // - เงินช่วยค่าบ้าน ("Bonus" ในตาราง): ฿14,000 ⚠️ ไม่ใช่โบนัสจริง!
+  // - ค่ารถเดินทาง (แทน OT เพราะ AM ไม่มี OT): ฿9,300
+  // = Gross ฿91,080
+  // - หัก: ประกันสังคม ฿875 + ออมทรัพย์ฝากเอง ฿9,942 + ภาษี ~฿4,385 = ฿15,202
+  // = Net เข้าบัญชี ~฿75,878
+  // ✨ Daikin PVD สมทบ ฿6,628 = บริษัทเพิ่มให้ฟรี (ไม่หักจากเงินเดือน)
+  income: [
+    { name: "เงินเดือน Daikin (Net หลังหัก)",  amount: 75878, note: "Salary + เงินช่วยค่าบ้าน + ค่ารถ - ประกันสังคม - ออมเอง 15% - ภาษี" },
+    { name: "Keen Condo - ส่วนของ Champ",     amount: 10343, note: "Champ Get · จาก Net ฿35.3K/เดือน หลังหักทุกค่าใช้จ่าย" },
+    { name: "รายได้แผงค้าร้านกาแฟ",            amount: 12600, note: "มรดก · ใช้จ่ายเบี้ยประกัน" },
+    { name: "ค่าเช่าที่ดินนครชัยศรี",          amount: 2500,  note: "เข้าทุกวันที่ 5" },
+    { name: "ผลตอบแทนพอร์ต (เฉลี่ย)",        amount: 2500,  note: "ปันผล + Capital gain (ประมาณ)" }
+  ],
+
+  // ── รายละเอียดเงินเดือน Daikin (Apr 2026) ─────────────────────
+  // 📌 หักจาก Champ จริงๆ = ประกันสังคม + ออมทรัพย์ฝากเอง + ภาษี
+  // ⚠️ Daikin PVD สมทบ = บริษัทใส่เพิ่มให้ฟรี (ไม่หักจากเงินเดือน Champ)
+  salaryBreakdown: {
+    base: 65580,
+    seniority: 700,                    // เบี้ยอายุงาน
+    diligence: 1500,                   // เบี้ยขยัน (ถ้าครบเดือน)
+    housingAllowance: 14000,           // เงินช่วยค่าบ้าน (เรียกว่า Bonus ในตาราง)
+    carAllowance: 9300,                // ค่ารถ (แทน OT หลังเป็น AM)
+    deductions: {
+      socialSecurity: 875,
+      pvdSelf: 9942,                   // ออมทรัพย์ฝากเอง 15%
+      tax: 4385                        // ประมาณ
+    },
+    companyAddOn: {
+      pvdMatch: 6628                   // ✨ บริษัทสมทบเพิ่ม (ไม่หักจาก Champ)
+    },
+    grossSum: 91080,
+    netReceived: 75878,                // หลังหักจริงๆ
+    note: "หลังเป็น AM (Apr 2026) ไม่ได้ OT แล้ว · ได้ค่ารถ ฿9,300/เดือนแทน"
+  },
+
+  // ── เงินที่ผ่านมือแต่ไม่ใช่รายได้ของ Champ (Pass-through) ─────
+  // จาก Keen Condo = ฿49,963 - ค่าใช้จ่าย ฿14,620 = Net ฿35,343
+  // แบ่งเป็น: Yuko ฿12,000 + Keep Gold ยูโกะ ฿10,000 + New Home ฿3,000 + Champ ฿10,343
+  keenBreakdown: {
+    grossRent: 49963,
+    expenses: 14620,
+    netToShare: 35343,
+    yukoShare: 12000,
+    yukoGold: 10000,
+    newHomeShared: 3000,
+    champShare: 10343
+  },
+
+  // ── รายจ่ายรายเดือน (THB) ─────────────────────
+  expenses: [
+    { name: "ผ่อนบ้าน Nirvana KKP (ขั้นต่ำ)", amount: 26000, note: "ขั้นต่ำ · 28 ปีเหลือ" },
+    { name: "โป๊ะเงินต้นบ้าน (Champ Get จาก Keen)", amount: 10343, note: "ลดภาระดอกเบี้ย · ใช้ทั้งก้อน" },
+    { name: "ออม + ลงทุน (หุ้น)",       amount: 15000, note: "บัญชีกรุงเทพ → BLS" },
+    { name: "เบี้ยประกัน (รวม 7 ฉบับ)",   amount: 15573, note: "จ่ายจากรายได้แผงค้า" },
+    { name: "Daily Food + House",       amount: 8300,  note: "อาหาร + ของใช้ในบ้าน" },
+    { name: "ส่วนกลาง Nirvana + น้ำ + ไฟ + เน็ต", amount: 6000,  note: "ส่วนกลาง ฿2.5K + น้ำ-ไฟ ฿3K + เน็ต ฿0.5K" },
+    { name: "รถ + น้ำมัน + ทางด่วน",     amount: 4250,  note: "Mazda 2 บำรุงรักษา" },
+    { name: "อื่นๆ (เรียน + บริจาค + ดูแลตัว)", amount: 9130,  note: "Education ฿2K + Donate ฿2K + อื่นๆ" }
+  ],
+
+  // ── สินทรัพย์ (THB) ─────────────────────
+  // 📌 ทรัพย์สินอสังหาทั้งหมดเป็นชื่อ Champ ตามกฎหมาย (จะแบ่งตามพินัยกรรมในอนาคต)
+  // 📌 มูลค่า liquid assets ดึงจาก Sheet "Cash Sum" (mark-to-market อัพเดททุกเดือน)
+  // 📌 PVD TISCO แยกออกจาก "กองทุนรวม" — เป็น Retirement asset (ผูกกับการทำงาน)
+  assets: [
+    { name: "บ้าน Nirvana Element Bangna", amount: 11000000, type: "real_estate", note: "ในชื่อ Champ (กฎหมาย) · ยูโกะร่วมลงทุน · พินัยกรรมระบุยูโกะ" },
+    { name: "Keen Condo Sriracha",       amount: 6700000, type: "real_estate", note: "ในชื่อ Champ (กฎหมาย) · ยูโกะร่วมลงทุน · พินัยกรรมระบุยูโกะ · 81.84 ตร.ม." },
+    { name: "ทองคำ",                  amount: 1110672, type: "hard_asset", note: "แท่ง ฿93K + แอป ฿1.02M (ส่วนหนึ่งของยูโกะ) · จาก Cash Sum" },
+    { name: "PVD TISCO (Daikin)",       amount: 805630,  type: "retirement", note: "Mark-to-market · ผูกกับการทำงาน · ออกก่อนกำหนดอาจได้คืนไม่เต็ม" },
+    { name: "เงินสด (รวม)",             amount: 674008,  type: "cash", note: "หลายบัญชี SCB · จัดสรรตามวัตถุประสงค์ · จาก Cash Sum" },
+    { name: "กองทุนรวม (LTF + ESG + B-INNOTECH)", amount: 336565, type: "investment", note: "Liquid investment · ไม่รวม PVD · สามารถขายได้" },
+    { name: "รถ Mazda 2 Skyactiv",     amount: 350000,  type: "hard_asset", note: "ปี 2017" },
+    { name: "มูลค่าประกันออมทรัพย์",      amount: 281321,  type: "insurance", note: "Surrender value 3 กรมธรรม์" },
+    { name: "หุ้นไทย",                 amount: 227847,  type: "investment", note: "TISCO + CPN + อื่นๆ · จาก Cash Sum" },
+    { name: "Bitcoin / Crypto",        amount: 54876,   type: "investment", note: "เริ่ม Dec 2025 · จาก Cash Sum" }
+  ],
+
+  // ── หนี้สิน (THB) ─────────────────────
+  liabilities: [
+    { name: "สินเชื่อบ้าน KKP",
+      amount: 5593405,
+      note: "ดอก 2.10% → 3.10% → ลอยตัว · ปลอดค่าปรับรีไฟแนนซ์" }
+  ],
+
+  // ── การเติบโตเงินเดือน (Daikin) + Career Milestones ─────────────────────
+  salaryHistory: [
+    { date: "Jun 2015", salary: 18860, net: 19010, milestone: "เริ่มงาน · Electrical Engineer (Intern)" },
+    { date: "Oct 2015", salary: 20250, net: 23054, milestone: "เริ่มงานเต็มเวลา" },
+    { date: "Oct 2016", salary: 21450, net: 29694, milestone: "Engineer Year 1" },
+    { date: "Oct 2017", salary: 22400, net: 28177, milestone: "Engineer Year 2" },
+    { date: "Apr 2018", salary: 23902, net: 30460, milestone: "★ ปรับ SE — Remote Controller Development" },
+    { date: "2020", salary: 28000, net: 36000, milestone: "Senior Eng. — Interface PCB Project" },
+    { date: "2021", salary: 32000, net: 42000, milestone: "SE — IoT Product & PoC" },
+    { date: "2023", salary: 42000, net: 54000, milestone: "★ ปรับ SU (Supervisor) — IoT Product Planning" },
+    { date: "Apr 2024", salary: 49510, net: 62000, milestone: "Year 9" },
+    { date: "Apr 2025", salary: 54080, net: 75000, milestone: "Supervisor / PM Lead" },
+    { date: "Apr 2026", salary: 65580, net: 75878, milestone: "★ ปรับ AM (Assistant Manager) — Product Management Lead" },
+    { date: "Jun 2027", salary: 70826, net: 95000, milestone: "Year 12 (คาดการณ์)" }
+  ],
+
+  // ── Net Worth ตาม timeline ─────────────────────
+  netWorthHistory: [
+    { date: "Aug 2022", value: 1326328 },
+    { date: "Jan 2023", value: 1826211 },
+    { date: "Aug 2023", value: 2241290 },
+    { date: "Jan 2024", value: 2429975 },
+    { date: "Aug 2024", value: 2802394 },
+    { date: "Jan 2025", value: 2384870 },
+    { date: "Aug 2025", value: 2444273 },
+    { date: "Jan 2026", value: 2962324 },
+    { date: "Apr 2026", value: 3154722 }
+  ],
+
+  // ── ประกันชีวิต ─────────────────────
+  insurance: [
+    { name: "Unit Link (Investment)", premium: 0,     death: 0,       critical: 0,       med: 0,       status: "surrendered", priority: "เวนคืนแล้ว" },
+    { name: "PA Package",             premium: 2500,  death: 500000,  critical: 0,       med: 0,       status: "active", priority: "เก็บ" },
+    { name: "ออมทรัพย์ 15/25",         premium: 15200, death: 200000,  critical: 0,       med: 0,       status: "active", priority: "ทบทวน" },
+    { name: "Plush Gold 20 Pay life",  premium: 10298, death: 400000,  critical: 0,       med: 730000,  status: "active", priority: "เก็บ" },
+    { name: "★ Plush Gold 20 Pay life 2", premium: 22828, death: 100000, critical: 2000000, med: 5000000, status: "active", priority: "เก็บ ⭐" },
+    { name: "สะสมทรัพย์ 21/42",        premium: 40064, death: 360000,  critical: 100000,  med: 0,       status: "active", priority: "ทบทวน" },
+    { name: "สะสมทรัพย์ 30 ชำระ 25 ปี",  premium: 32365, death: 350000,  critical: 0,       med: 730000,  status: "active", priority: "ทบทวน" },
+    { name: "ประกันบำนาญ (จาก Unit Link)", premium: 63625, death: 0,       critical: 0,       med: 0,       status: "new",    priority: "ใหม่" }
+  ],
+
+  // ── ประกันชีวิต - รายละเอียด (สำหรับ Retirement page) ─────────────────────
+  // 📌 จากข้อมูล Sheet "3. ประกัน รายละเอียด" + screenshot ที่ Champ ส่ง
+  // 📌 อายุ Champ ปัจจุบัน 33 (เกิด Nov 1992)
+  insurancePolicies: [
+    {
+      no: 1,
+      name: "สะสมทรัพย์ 25 ชำระ 15 ปี",
+      code: "T177138876",
+      sumInsured: 200000,
+      premium: 15200,
+      paid: 14,
+      total: 15,
+      yearsLeft: 1,
+      maturityYear: 2036,
+      maturityAge: 44,
+      maturityAmount: 250000,    // ประมาณการ (เงินคืนครบสัญญา)
+      type: "endowment",
+      status: "ใกล้ครบ ✓"
+    },
+    {
+      no: 2,
+      name: "สะสมทรัพย์ 30 ชำระ 15 ปี",
+      code: "T209042555",
+      sumInsured: 350000,
+      premium: 32365,
+      paid: 9,
+      total: 15,
+      yearsLeft: 6,
+      maturityYear: 2046,
+      maturityAge: 54,
+      maturityAmount: 450000,
+      type: "endowment",
+      status: "กำลังส่ง"
+    },
+    {
+      no: 3,
+      name: "สะสมทรัพย์ 42 ชำระ 21 ปี",
+      code: "T206478834",
+      sumInsured: 300000,
+      premium: 40070,
+      paid: 9,
+      total: 21,
+      yearsLeft: 12,
+      maturityYear: 2058,
+      maturityAge: 66,
+      maturityAmount: 400000,
+      type: "endowment",
+      status: "กำลังส่ง"
+    },
+    {
+      no: 4,
+      name: "ตลอดชีพ ชำระเบี้ย 20 ปี",
+      code: "T204409300",
+      sumInsured: 400000,
+      premium: 10298,
+      paid: 10,
+      total: 20,
+      yearsLeft: 10,
+      maturityYear: null,
+      maturityAge: null,
+      maturityAmount: 400000,    // เงินทุนชีวิต (ตลอดชีพ)
+      type: "wholeLife",
+      status: "กำลังส่ง"
+    },
+    {
+      no: 5,
+      name: "ตลอดชีพ ชำระเบี้ย 20 ปี (Vai)",
+      code: "T223514632",
+      sumInsured: 100000,
+      premium: 23640,
+      paid: 5,
+      total: 20,
+      yearsLeft: 15,
+      maturityYear: null,
+      maturityAge: null,
+      maturityAmount: 100000,
+      type: "wholeLife",
+      status: "เพิ่งเริ่ม"
+    },
+    {
+      no: 6,
+      name: "ปานคญ (บำนาญ)",
+      code: "T237355683",
+      sumInsured: 0,
+      premium: 51840,
+      paid: 3,
+      total: 20,
+      yearsLeft: 17,
+      maturityYear: 2042,
+      maturityAge: 49,
+      pensionStartAge: 55,
+      pensionAmountYearly: 50000,  // คาดการณ์ ปีละ ประมาณ
+      maturityAmount: 1000000,     // 105% ของเบี้ยที่ฝาก ~ 1M+
+      type: "annuity",
+      status: "เพิ่งเริ่ม"
+    }
+  ],
+
+  // ── หนี้บ้าน Nirvana KKP ─────────────────────
+  loan: {
+    bank: "KKP (เกียรตินาคินภัทร)",
+    originalAmount: 6000000,
+    currentBalance: 5593405,
+    startDate: "Sep 2024",
+    termYears: 30,
+    monthlyMin: 26000,
+    monthlyExtra: 10000,         // โป๊ะจาก Keen
+    monthlyTotal: 36000,
+    interestRates: [
+      { period: "ปี 1-3 (Sep 2024 - Sep 2027)", rate: "2.10% → 3.10%", note: "ดอกโปรโมชั่น" },
+      { period: "ปี 4+ (หลัง Sep 2027)",         rate: "MRR-X (~5.5%)",   note: "ลอยตัว · ควรรีไฟแนนซ์" }
+    ],
+    refinancePlan: {
+      date: "Sep 2027",
+      noPenalty: true,
+      targetRate: "2.5-3.0%",
+      note: "ปลอดค่าปรับ · ควรเปรียบเทียบ 3-5 ธนาคาร"
+    },
+    // คำนวณตาม scenario
+    scenarios: [
+      { name: "ขั้นต่ำ ฿26K (ดอกเฉลี่ย 5.5%)",        monthly: 26000, years: 50,   totalInterest: 14400000 },
+      { name: "+โป๊ะ ฿36K (ดอกเฉลี่ย 5.5%)",         monthly: 36000, years: 22.8, totalInterest: 4200000 },
+      { name: "+โป๊ะ ฿36K + รีไฟแนนซ์ทุก 3 ปี (3.5%)", monthly: 36000, years: 17.3, totalInterest: 1870000 },
+      { name: "Aggressive ฿50K + รีไฟแนนซ์",         monthly: 50000, years: 11.3, totalInterest: 1190000 }
+    ]
+  },
+
+  // ── เป้าหมาย ─────────────────────
+  goals: [
+    { name: "Investment Portfolio (สร้าง Yield 6.46%)", current: 2590000,  target: 6500000, format: "money" },
+    { name: "ปิดหนี้บ้าน Nirvana",                      current: 406595,   target: 6000000, format: "money_inverse" },
+    { name: "Emergency Fund (6 เดือน)",                  current: 674000,   target: 580000,  format: "money" },
+    { name: "Net Worth (อายุ 40)",                        current: 12900000, target: 20000000, format: "money" }
+  ],
+
+  // ── Action Items ─────────────────────
+  actions: [
+    {
+      level: "danger",
+      title: "Priority 1 — ทำ MRTA สำหรับบ้าน (เร่งด่วนหลังเวนคืน Unit Link)",
+      body: "หนี้บ้าน ฿5.59M แต่คุ้มชีวิตเหลือเพียง ฿1.91M = ส่วนต่าง ฿3.68M ที่ยูโกะอาจต้องรับภาระ → โทร KKP ขอ quote MRTA วงเงิน ฿5M ระยะ 28 ปี + พิจารณา Term Life เสริมราคาถูก"
+    },
+    {
+      level: "warning",
+      title: "Priority 2 — ทบทวนประกันออมทรัพย์ 3 ฉบับ",
+      body: "ใช้เบี้ย ฿87K/ปี (47% ของทั้งหมด) แต่ผลตอบแทนเฉลี่ย 1.5-2.5% → ขอ Surrender Value + IRR แล้วเทียบกับลงทุนเอง"
+    },
+    {
+      level: "warning",
+      title: "Priority 3 — กระจายความเสี่ยงพอร์ต",
+      body: "ทอง 35% + กองทุนไทย 36% + Cash 21% · ขาด Global Equity → พิจารณาเพิ่ม VWRA/ACWI 15-20%"
+    },
+    {
+      level: "success",
+      title: "Priority 4 — เตรียมเอกสารแต่งงาน 2 ประเทศ",
+      body: "แต่งปี 2027 + จดทะเบียน TH+JP → เริ่มเตรียมเอกสาร Q3 2026 (สถานทูตญี่ปุ่น + City Hall)"
+    },
+    {
+      level: "success",
+      title: "Priority 5 — Emergency Fund เพียงพอแล้ว",
+      body: "เงินสด ฿674K ≈ 7 เดือนของรายจ่าย → ส่วนเกินทยอยย้ายไปลงทุนระยะยาวได้"
+    }
+  ]
+};
+
+// ============================================================
+// 🔢 HELPER FUNCTIONS
+// ============================================================
+const fmt = {
+  baht: n => {
+    const num = Number(n);
+    if (!Number.isFinite(num)) return '฿0';
+    return '฿' + Math.round(num).toLocaleString();
+  },
+  bahtShort: n => {
+    const num = Number(n);
+    if (!Number.isFinite(num)) return '฿0';
+    if (num >= 1000000) return '฿' + (num/1000000).toFixed(2) + 'M';
+    if (num >= 1000) return '฿' + (num/1000).toFixed(0) + 'K';
+    return '฿' + Math.round(num).toLocaleString();
+  },
+  pct: n => {
+    const num = Number(n);
+    if (!Number.isFinite(num)) return '0.0%';
+    return num.toFixed(1) + '%';
+  }
+};
+
+const sum = arr => arr.reduce((a,b) => {
+  const n = Number(b);
+  return a + (Number.isFinite(n) ? n : 0);
+}, 0);
+</script>
+
+<style>
+  /* ============================================================ */
+  /*  🎨 STYLE — แก้สีและตัวแปรหลักได้ที่ :root                  */
+  /* ============================================================ */
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --border: #e5e5e0;
+    --border-strong: #d0d0c8;
+    --text: #1a1a1a;
+    --text-soft: #555555;
+    --text-mute: #888888;
+    --primary: #1f6feb;
+    --green: #16a34a;
+    --red: #dc2626;
+    --amber: #d97706;
+    --bg-green: #f0fdf4;
+    --bg-red: #fef2f2;
+    --bg-amber: #fffbeb;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Sarabun', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 14px;
+  }
+
+  .num { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--text);
+  }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header .meta { color: var(--text-mute); font-size: 12px; text-align: right; }
+
+  /* -- LANGUAGE SWITCHER -- */
+  .lang-switch {
+    display: inline-flex;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  .lang-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-mute);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .lang-btn.active { background: var(--primary); color: #fff; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-mute);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+  }
+  .tab-icon { margin-right: 6px; }
+
+  /* ── PANELS ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+  .kpi.primary { border-left: 4px solid var(--primary); }
+  .kpi.green   { border-left: 4px solid var(--green); }
+  .kpi.red     { border-left: 4px solid var(--red); }
+  .kpi.amber   { border-left: 4px solid var(--amber); }
+
+  .kpi .label {
+    font-size: 12px;
+    color: var(--text-mute);
+    margin-bottom: 6px;
+  }
+  .kpi .value {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .kpi .sub {
+    font-size: 11px;
+    color: var(--text-mute);
+    margin-top: 4px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .card h2 .total {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .card h2 .total.green { color: var(--green); }
+  .card h2 .total.red { color: var(--red); }
+
+  /* ── TWO COLUMN ── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 768px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ── LIST ── */
+  .item-list { display: flex; flex-direction: column; }
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .item:last-child { border-bottom: none; }
+  .item .name { font-weight: 500; font-size: 14px; }
+  .item .note { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+  .item .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .item .amount.income { color: var(--green); }
+  .item .amount.expense { color: var(--red); }
+
+  /* ── TABLE ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 8px;
+    font-weight: 600;
+    color: var(--text-soft);
+    font-size: 12px;
+    border-bottom: 2px solid var(--border-strong);
+    background: var(--bg);
+  }
+  td {
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  td.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
+  tr:hover td { background: var(--bg); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.green { background: var(--bg-green); color: var(--green); }
+  .badge.red   { background: var(--bg-red); color: var(--red); }
+  .badge.amber { background: var(--bg-amber); color: var(--amber); }
+  .badge.gray  { background: var(--bg); color: var(--text-soft); }
+
+  /* ── ALERTS ── */
+  .alert {
+    padding: 14px 16px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    border-left: 4px solid;
+  }
+  .alert.danger  { background: var(--bg-red); border-color: var(--red); }
+  .alert.warning { background: var(--bg-amber); border-color: var(--amber); }
+  .alert.success { background: var(--bg-green); border-color: var(--green); }
+  .alert .alert-title { font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+  .alert .alert-body { font-size: 13px; color: var(--text-soft); }
+
+  /* ── PROGRESS ── */
+  .progress { margin-bottom: 16px; }
+  .progress .info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .progress .info .pct { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .progress .bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress .fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 4px;
+    transition: width 0.6s;
+  }
+  .progress .fill.green { background: var(--green); }
+  .progress .fill.amber { background: var(--amber); }
+  .progress .fill.red { background: var(--red); }
+
+  /* ── CHART CONTAINER ── */
+  .chart-box { position: relative; height: 280px; margin-top: 8px; }
+  .chart-box.tall { height: 360px; }
+
+  /* ── INFO BOX ── */
+  .info-box {
+    background: var(--bg);
+    padding: 12px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .info-box .key {
+    color: var(--text-mute);
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+  .info-box .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--text-mute);
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <h1 id="userName">—</h1>
+      <div style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">Personal Financial Dashboard · จัดการการเงินส่วนตัว</div>
+    </div>
+    <div class="meta">
+      <div>UPDATED <span id="updatedDate">—</span></div>
+      <div style="margin-top: 4px; font-weight: 600; color: var(--text);">AGE <span id="userAge">—</span></div>
+      <div class="lang-switch" aria-label="Language switcher">
+        <button class="lang-btn active" id="langTh" type="button" onclick="setLanguage('th')">TH</button>
+        <button class="lang-btn" id="langJa" type="button" onclick="setLanguage('ja')">日本語</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview')"><span class="tab-icon">📊</span>ภาพรวม</button>
+    <button class="tab" onclick="showTab('cashflow')"><span class="tab-icon">💸</span>Cash Flow</button>
+    <button class="tab" onclick="showTab('balance')"><span class="tab-icon">⚖️</span>สินทรัพย์/หนี้สิน</button>
+    <button class="tab" onclick="showTab('career')"><span class="tab-icon">💼</span>Career & Profile</button>
+    <button class="tab" onclick="showTab('salary')"><span class="tab-icon">📈</span>เงินเดือน</button>
+    <button class="tab" onclick="showTab('insurance')"><span class="tab-icon">🛡️</span>ประกัน</button>
+    <button class="tab" onclick="showTab('retirement')"><span class="tab-icon">🌅</span>เกษียณ</button>
+    <button class="tab" onclick="showTab('loan')"><span class="tab-icon">🏡</span>หนี้บ้าน</button>
+    <button class="tab" onclick="showTab('actions')"><span class="tab-icon">✓</span>สิ่งต้องทำ</button>
+  </div>
+
+  <!-- ==========  TAB 1: OVERVIEW  ========== -->
+  <div class="panel active" id="overview">
+    <div class="kpi-grid" id="overviewKpis"></div>
+
+    <!-- Wealth Building Section -->
+    <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 50%, #fff 100%); border-left: 4px solid var(--green);">
+      <h2>💎 Wealth Building / เดือน — เงินสะสมระยะยาว 4 ช่องทาง</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 20px;">
+        เงินที่ลงทุน/สะสม/ลดหนี้ ทุกเดือน · <strong>ไม่รวม Cash เหลือใช้สด</strong> (ที่เก็บไว้ใช้ส่วนตัว/ฉุกเฉิน)
+      </p>
+
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <!-- Left: Components breakdown -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">📋 รายละเอียด Wealth Building</h3>
+
+          <div class="info-box" style="border-left: 4px solid #1f6feb;">
+            <div class="key">📈 ออมหุ้น (Asset Growth)</div>
+            <div class="val" style="color: var(--primary);" id="wbStock">—</div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #d97706;">
+            <div class="key">🏡 โป๊ะหนี้บ้าน (ลดหนี้ = สร้างทุน)</div>
+            <div class="val" style="color: var(--amber);" id="wbDebt">—</div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #8b5cf6;">
+            <div class="key">🏦 ออมทรัพย์ PVD ฝากเอง</div>
+            <div class="val" style="color: #8b5cf6;" id="wbPvdSelf">—</div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #06b6d4; background: #ecfeff;">
+            <div class="key">🎁 ไดกิ้นสมทบ (ฟรี!)</div>
+            <div class="val" style="color: #06b6d4;" id="wbPvdCompany">—</div>
+          </div>
+
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); border-width: 2px; margin-top: 12px;">
+            <div class="key" style="color: var(--green);">💎 รวม Wealth Building / เดือน (ไม่รวมโบนัส)</div>
+            <div class="val" style="color: var(--green); font-size: 20px;" id="wbTotal">—</div>
+          </div>
+
+          <!-- Cash Flow ที่แยกออกมา -->
+          <div class="info-box" style="background: #fffbeb; border: 2px dashed var(--amber); margin-top: 20px;">
+            <div class="key" style="color: var(--amber);">💵 Cash เหลือใช้สด (เก็บไว้ใช้เล่น/ฉุกเฉิน)</div>
+            <div class="val" style="color: var(--amber); font-size: 16px;" id="wbCashFlow">—</div>
+            <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">
+              เงินส่วนตัว · ปาร์ตี้, ตีกอล์ฟ, ของขวัญ, ฉุกเฉิน · ไม่ผูกมัด
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Donut chart -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">🎯 สัดส่วน Wealth Building</h3>
+          <div class="chart-box" style="height: 280px;"><canvas id="wealthChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Bonus Section -->
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+        <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">⭐ ถ้าเฉลี่ยโบนัสจริง ธ.ค. มาด้วย</h3>
+        <div class="grid-2">
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">โบนัสจริง ธ.ค. 2026 (เฉลี่ย/เดือน)</div>
+            <div class="val" style="color: var(--amber);" id="wbBonusMonthly">—</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); border-width: 2px;">
+            <div class="key">💎 Wealth Building รวมโบนัสเฉลี่ย</div>
+            <div class="val" style="color: var(--green); font-size: 18px;" id="wbTotalWithBonus">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Annual Summary -->
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">📊 สรุปเป็นปี</div>
+        <div class="alert-body" id="wealthAnnualSummary">—</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>📈 Net Worth Growth</h2>
+        <div class="chart-box"><canvas id="netWorthChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>🎯 Progress to Goals</h2>
+        <div id="goalsList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📌 ภาพรวม Asset Allocation</h2>
+      <div class="chart-box tall"><canvas id="overviewAllocChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ==========  TAB 2: CASH FLOW  ========== -->
+  <div class="panel" id="cashflow">
+    <div class="kpi-grid" id="cashflowKpis"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>💰 รายรับ <span class="total green" id="incomeTotal">—</span></h2>
+        <div class="item-list" id="incomeList"></div>
+      </div>
+
+      <div class="card">
+        <h2>💸 รายจ่าย <span class="total red" id="expenseTotal">—</span></h2>
+        <div class="item-list" id="expenseList"></div>
+      </div>
+    </div>
+
+    <!-- Keen Condo Money Flow Breakdown -->
+    <div class="card" style="margin-top: 16px; background: linear-gradient(to right, #f0f9ff, #fff);">
+      <h2>🏢 Keen Condo Sriracha — การจัดสรรเงิน</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 16px;">
+        ค่าเช่าที่ได้รับเต็ม ฿49,963/เดือน · หักค่าใช้จ่ายและแบ่งตามข้อตกลงกับยูโกะ
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">📥 ได้รับ → 📤 ค่าใช้จ่าย Keen</h3>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green);">
+            <div class="key">ค่าเช่ารวม (Gross)</div>
+            <div class="val" style="color: var(--green);">฿49,963</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- Keen service ส่วนกลาง</div>
+            <div class="val">-฿4,296</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- Internet</div>
+            <div class="val">-฿524</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- T.V JP 15 Channels</div>
+            <div class="val">-฿1,000</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- ค่ากรองน้ำ + Bed cover + ซักผ้า</div>
+            <div class="val">-฿4,300</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- ค่าไฟฟ้า + น้ำ (Limit)</div>
+            <div class="val">-฿4,500</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">= Net หลังหักค่าใช้จ่าย</div>
+            <div class="val" style="color: var(--amber);">฿35,343</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">💼 การแบ่งเงิน ฿35,343 (4 ทาง)</h3>
+
+          <div class="info-box" style="border-left: 4px solid #ec4899;">
+            <div class="key">🌸 Yuko Get (หุ้นส่วนยูโกะ)</div>
+            <div class="val">฿12,000 <span style="font-weight: 400; color: var(--text-mute); font-size: 12px;">(34%)</span></div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #d97706;">
+            <div class="key">🪙 Keep Gold (ยูโกะซื้อทอง)</div>
+            <div class="val">฿10,000 <span style="font-weight: 400; color: var(--text-mute); font-size: 12px;">(28%)</span></div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #1f6feb;">
+            <div class="key">🏡 New Home (ค่าใช้จ่าย Nirvana ร่วม)</div>
+            <div class="val">฿3,000 <span style="font-weight: 400; color: var(--text-mute); font-size: 12px;">(8%)</span></div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #16a34a; background: var(--bg-green);">
+            <div class="key">🎯 Champ Get → ทบหนี้ KKP</div>
+            <div class="val" style="color: var(--green);">฿10,343 <span style="font-weight: 400; color: var(--text-mute); font-size: 12px;">(29%)</span></div>
+          </div>
+
+          <div class="alert success" style="margin-top: 12px;">
+            <div class="alert-title">💡 ข้อสังเกต</div>
+            <div class="alert-body">
+              ในมุมมองของ Champ: เข้าตัวจริง <strong>฿10,343/เดือน</strong> (ใช้ทบหนี้บ้าน 100%)
+              <br>ส่วนยูโกะ: ได้รับ + เก็บทองรวม <strong>฿22,000/เดือน</strong> (Asset growth)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========  TAB 3: BALANCE  ========== -->
+  <div class="panel" id="balance">
+    <div class="kpi-grid" id="balanceKpis"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>🏦 สินทรัพย์ <span class="total" id="assetsTotal">—</span></h2>
+        <div class="item-list" id="assetsList"></div>
+      </div>
+
+      <div class="card">
+        <h2>📉 หนี้สิน <span class="total red" id="liabilitiesTotal">—</span></h2>
+        <div class="item-list" id="liabilitiesList"></div>
+
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 2px solid var(--border-strong);">
+          <h2 style="border: none; padding: 0; margin: 0;">
+            💎 NET WORTH
+            <span class="total green" id="netWorthValue">—</span>
+          </h2>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========  TAB 4: CAREER & PROFILE  ========== -->
+  <div class="panel" id="career">
+
+    <!-- Profile Header Card -->
+    <div class="card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #fff 100%); border-left: 4px solid var(--primary);">
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <div>
+          <div style="font-size: 11px; color: var(--text-mute); letter-spacing: 0.1em; margin-bottom: 4px;">DAIKIN THAILAND · タイ</div>
+          <h2 style="border: none; padding: 0; margin: 0 0 8px; font-size: 26px;" id="profileFullName">—</h2>
+          <div style="font-size: 15px; color: var(--primary); font-weight: 600; margin-bottom: 4px;" id="profilePosition">—</div>
+          <div style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;" id="profileTitle">—</div>
+          <div style="font-size: 12px; color: var(--text-mute);" id="profileLocation">—</div>
+        </div>
+        <div>
+          <div class="info-box" style="margin-bottom: 8px;">
+            <div class="key">📧 EMAIL</div>
+            <div class="val" style="font-size: 13px;" id="profileEmail">—</div>
+          </div>
+          <div class="info-box" style="margin-bottom: 8px;">
+            <div class="key">📱 PHONE</div>
+            <div class="val" style="font-size: 13px;" id="profilePhone">—</div>
+          </div>
+          <div class="info-box">
+            <div class="key">🌐 LANGUAGES</div>
+            <div class="val" style="font-size: 13px;" id="profileLanguages">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Professional Summary -->
+    <div class="card">
+      <h2>📝 Professional Summary</h2>
+      <p style="font-size: 14px; line-height: 1.7; color: var(--text-soft);">
+        Product Management Lead with <strong>10+ years of experience</strong> in industrial IoT and digital solutions.
+        Currently responsible for product strategy and market execution across <strong>Asia Oceania</strong>,
+        working closely with <strong>DHOS (Daikin Holding Singapore)</strong> as the regional sales hub.
+        Proven ability to bridge <strong>R&amp;D, Sales, and Customers</strong> by directly engaging with customers
+        across multiple countries to translate market needs into scalable IoT platform features.
+      </p>
+      <div style="margin-top: 16px; padding: 12px; background: var(--bg); border-radius: 6px; font-size: 13px; color: var(--text-soft); font-style: italic;">
+        "My role connects both technical development and customer-side business — including product PoC,
+        advanced development, and even on-site support with sales teams to solve customer issues and
+        collect feedback for new features. I act as a bridge between <strong>technology, customers, and business</strong>."
+      </div>
+    </div>
+
+    <!-- Career Path Timeline - Visual -->
+    <div class="card">
+      <h2>🚀 Career Path at Daikin (11 Years)</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 24px;">
+        เส้นทางการเติบโต · Engineer → SE → SU → ★ Assistant Manager
+      </p>
+      <div id="careerTimeline" style="margin-top: 16px;"></div>
+
+      <!-- Promotion Highlights -->
+      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+        <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">⭐ Promotion Milestones</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;" id="promotionMilestones"></div>
+      </div>
+    </div>
+
+    <!-- Key Achievements -->
+    <div class="card">
+      <h2>🏆 Key Achievements & Projects</h2>
+      <div style="display: grid; gap: 12px;">
+        <div style="padding: 14px; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--primary);">
+          <div style="font-weight: 600; margin-bottom: 4px;">🌐 MARUTTO IoT Platform</div>
+          <div style="font-size: 13px; color: var(--text-soft);">
+            Owned product strategy and market execution for IoT platform designed to create recurring
+            service revenue beyond traditional air-conditioning hardware sales.
+          </div>
+        </div>
+        <div style="padding: 14px; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--green);">
+          <div style="font-weight: 600; margin-bottom: 4px;">⚡ AI Energy Control Sales Enablement</div>
+          <div style="font-size: 13px; color: var(--text-soft);">
+            Led training for 100+ sales members across 9 affiliates · Contributed to AI Energy Control
+            becoming the best-selling MARUTTO package.
+          </div>
+        </div>
+        <div style="padding: 14px; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--amber);">
+          <div style="font-weight: 600; margin-bottom: 4px;">🤝 Cross-border Collaboration with DHOS</div>
+          <div style="font-size: 13px; color: var(--text-soft);">
+            Worked closely with Daikin Holding Singapore as the regional sales hub · Direct customer
+            engagement across Asia Oceania to validate use cases and improve product-market fit.
+          </div>
+        </div>
+        <div style="padding: 14px; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--text-soft);">
+          <div style="font-weight: 600; margin-bottom: 4px;">🌍 Japan HQ Trained Engineer</div>
+          <div style="font-size: 13px; color: var(--text-soft);">
+            Trained at Daikin Japan HQ · Developed control, communication, and protection PCBs for
+            air-conditioning systems · Strong foundation in EMC testing and system integration.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Expertise -->
+    <div class="card">
+      <h2>💎 Core Expertise</h2>
+      <div id="expertiseList" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;"></div>
+    </div>
+
+    <!-- What Makes Me Unique -->
+    <div class="card">
+      <h2>✨ What Makes Me Unique</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+        <div style="text-align: center; padding: 20px 12px; background: var(--bg); border-radius: 6px;">
+          <div style="font-size: 28px; margin-bottom: 8px;">💡</div>
+          <div style="font-weight: 600; margin-bottom: 4px;">Simplify Complexity</div>
+          <div style="font-size: 12px; color: var(--text-mute);">Explain complex things in a simple, clear way</div>
+        </div>
+        <div style="text-align: center; padding: 20px 12px; background: var(--bg); border-radius: 6px;">
+          <div style="font-size: 28px; margin-bottom: 8px;">🌉</div>
+          <div style="font-weight: 600; margin-bottom: 4px;">Two Languages</div>
+          <div style="font-size: 12px; color: var(--text-mute);">Speak both engineering and business languages</div>
+        </div>
+        <div style="text-align: center; padding: 20px 12px; background: var(--bg); border-radius: 6px;">
+          <div style="font-size: 28px; margin-bottom: 8px;">🚀</div>
+          <div style="font-weight: 600; margin-bottom: 4px;">Ship Real Features</div>
+          <div style="font-size: 12px; color: var(--text-mute);">Love seeing ideas turn into features people use</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Education -->
+    <div class="card">
+      <h2>🎓 Education</h2>
+      <div class="info-box">
+        <div class="val" id="profileEducation">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========  TAB 5: SALARY  ========== -->
+  <div class="panel" id="salary">
+    <div class="kpi-grid" id="salaryKpis"></div>
+
+    <div class="card">
+      <h2>📈 การเติบโตเงินเดือน + Career Milestones (2015 - ปัจจุบัน)</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 16px;">
+        Engineer → SE (2018) → SU (2023) → ★ AM (2026) · เติบโต 248% ใน 11 ปี
+      </p>
+      <div class="chart-box tall"><canvas id="salaryChart"></canvas></div>
+    </div>
+
+    <!-- Annual Bonus History -->
+    <div class="card">
+      <h2>🎁 โบนัสจริงประจำปี (เฉพาะเดือนธันวาคม)</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 16px;">
+        <span class="badge green">✓ จริง</span> ได้รับแล้ว ·
+        <span class="badge amber">⏳ คาดการณ์</span> ปี 2026 ยังไม่ได้รับ ·
+        <span class="badge gray">📊 คาดการณ์</span> อนาคต
+        <br>⚠️ "Bonus ฿14,000" รายเดือนในตาราง = เงินช่วยค่าบ้าน (ไม่ใช่โบนัส) · โบนัสจริงๆ ออก ธ.ค. รอบเดียว
+      </p>
+      <div class="chart-box tall"><canvas id="bonusChart"></canvas></div>
+
+      <table style="margin-top: 16px;">
+        <thead>
+          <tr>
+            <th>ปี</th>
+            <th>ตำแหน่ง / Status</th>
+            <th class="num">โบนัส ธ.ค.</th>
+            <th class="num">% เงินเดือน</th>
+          </tr>
+        </thead>
+        <tbody id="bonusTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Daikin Benefits - moved here -->
+    <div class="card" style="background: linear-gradient(to right, #fefce8, #fff); border-left: 4px solid var(--amber);">
+      <h2>💰 Daikin Benefits — สวัสดิการที่กำลังสะสม</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 16px;">
+        เป็น "ทรัพย์สินซ่อน" ที่หลายคนลืมนึก · รวมแล้วเป็นเงินก้อนใหญ่ที่จะได้ตอนเกษียณ
+      </p>
+
+      <div class="grid-2">
+        <!-- ออมทรัพย์ (PVD ฝากเอง) -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px;">💵 ออมทรัพย์ (PVD - ฝากเอง 15%)</h3>
+          <div class="info-box">
+            <div class="key">หักจากเงินเดือน / เดือน</div>
+            <div class="val" id="pvdSelfMonthly">—</div>
+          </div>
+          <div class="info-box">
+            <div class="key">% ของเงินเดือน</div>
+            <div class="val" id="pvdSelfPct">—</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">ฝากเข้า PVD ปีนี้</div>
+            <div class="val" style="color: var(--amber); font-size: 18px;" id="pvdSelfBalance">—</div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-mute); margin-top: 8px;" id="pvdSelfNote">—</p>
+        </div>
+
+        <!-- Daikin Provident Fund (บริษัทสมทบ) -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px;">🏦 Daikin PVD (บริษัทสมทบ)</h3>
+          <div class="info-box">
+            <div class="key">บริษัทสมทบ / เดือน</div>
+            <div class="val" style="color: var(--green);" id="pvdCompanyMonthly">—</div>
+          </div>
+          <div class="info-box">
+            <div class="key">% ของเงินเดือน</div>
+            <div class="val" id="pvdCompanyPct">—</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green);">
+            <div class="key">บริษัทใส่ปีนี้</div>
+            <div class="val" style="color: var(--green); font-size: 18px;" id="pvdCompanyBalance">—</div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-mute); margin-top: 8px;" id="pvdCompanyNote">—</p>
+        </div>
+      </div>
+
+      <!-- Group Insurance -->
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+        <h3 style="font-size: 14px; margin-bottom: 12px;">🛡️ ประกันกลุ่ม Daikin</h3>
+        <div class="grid-2">
+          <div class="info-box">
+            <div class="key">OPD (ผู้ป่วยนอก / ปี)</div>
+            <div class="val" id="groupOpd">—</div>
+          </div>
+          <div class="info-box">
+            <div class="key">IPD + ประกันชีวิตกลุ่ม</div>
+            <div class="val" style="font-size: 13px; color: var(--text-mute);" id="groupOther">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">💡 มูลค่ารวมที่กำลังสะสม</div>
+        <div class="alert-body" id="totalBenefits">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📋 Timeline เงินเดือน + ตำแหน่ง</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th class="num">เงินเดือน Base</th>
+            <th class="num">Net เข้าบัญชี</th>
+            <th>เหตุการณ์</th>
+          </tr>
+        </thead>
+        <tbody id="salaryTable"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>💼 ส่วนประกอบเงินเดือนล่าสุด (Apr 2026 - หลังเป็น AM)</h2>
+      <div class="alert success" style="margin-bottom: 16px;">
+        <div class="alert-title">📌 เปลี่ยนแปลงสำคัญหลังเป็น AM</div>
+        <div class="alert-body">
+          ❌ <strong>ไม่ได้ OT แล้ว</strong> (AM ไม่มี OT ตามนโยบายบริษัท)
+          <br>✅ <strong>ได้ค่ารถเดินทาง ฿9,300/เดือนแทน</strong>
+          <br>📝 ส่วน <strong>"Bonus" ฿14,000 ในตาราง 1.Saraly</strong> = <strong>เงินช่วยค่าบ้าน</strong> (ไม่ใช่โบนัสจริง)
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Left: Income components -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">💰 รายรับ (Gross)</h3>
+          <div class="info-box">
+            <div class="key">เงินเดือน BASE</div>
+            <div class="val">฿65,580</div>
+          </div>
+          <div class="info-box">
+            <div class="key">+ เบี้ยอายุงาน</div>
+            <div class="val">฿700</div>
+          </div>
+          <div class="info-box">
+            <div class="key">+ เบี้ยขยัน (ถ้าทำงานเต็ม)</div>
+            <div class="val">฿1,500</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">+ เงินช่วยค่าบ้าน (พิเศษ)</div>
+            <div class="val" style="color: var(--amber);">฿14,000</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">+ ค่ารถเดินทาง (แทน OT)</div>
+            <div class="val" style="color: var(--amber);">฿9,300</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); border-width: 2px;">
+            <div class="key">= GROSS</div>
+            <div class="val" style="color: var(--green); font-size: 16px;">฿91,080</div>
+          </div>
+        </div>
+
+        <!-- Right: Deductions + Net + Company addon -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">💸 หักจากเงินเดือนคุณ</h3>
+          <div class="info-box">
+            <div class="key">- ประกันสังคม</div>
+            <div class="val">-฿875</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- ออมทรัพย์ (ฝากเอง 15%)</div>
+            <div class="val">-฿9,942</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- หักภาษี (ประมาณ)</div>
+            <div class="val">-฿4,385</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); border-width: 2px;">
+            <div class="key">= NET เข้าบัญชี</div>
+            <div class="val" style="color: var(--green); font-size: 18px;">฿75,878</div>
+          </div>
+
+          <h3 style="font-size: 14px; margin: 20px 0 12px; color: var(--text-soft);">🎁 บริษัทใส่เพิ่มให้ฟรี (ไม่หักจากคุณ)</h3>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green);">
+            <div class="key">+ Daikin PVD สมทบ (ไปอยู่ในกองทุน)</div>
+            <div class="val" style="color: var(--green);">+฿6,628 / เดือน</div>
+          </div>
+
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber); margin-top: 12px;">
+            <div class="key">⭐ โบนัสจริงๆ ออก ธ.ค. 2026</div>
+            <div class="val" style="color: var(--amber);">~฿417,680</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Box -->
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">💡 สรุป Total Wealth ต่อเดือนจาก Daikin</div>
+        <div class="alert-body">
+          เงินเข้าบัญชีคุณ <strong>฿75,878</strong> +
+          ออมทรัพย์ฝากเอง <strong>฿9,942</strong> (ของคุณแม้ไม่ได้เข้ามือ) +
+          ไดกิ้นสมทบฟรี <strong>฿6,628</strong> =
+          <strong style="color: var(--green); font-size: 16px;">฿92,448 / เดือน</strong>
+          <br><span style="font-size: 12px;">📌 สิ่งที่ Sheet หักออก ฿9,942 (ออมทรัพย์) ก็เป็นเงินเรา · บริษัทใส่เพิ่ม ฿6,628 = ของฟรี</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========  TAB 5: INSURANCE  ========== -->
+  <div class="panel" id="insurance">
+    <div class="kpi-grid" id="insuranceKpis"></div>
+
+    <div class="card">
+      <h2>📋 รายละเอียดกรมธรรม์</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>กรมธรรม์</th>
+            <th class="num">เบี้ย/ปี</th>
+            <th class="num">คุ้มชีวิต</th>
+            <th class="num">โรคร้าย</th>
+            <th class="num">เหมาจ่าย</th>
+            <th>คำแนะนำ</th>
+          </tr>
+        </thead>
+        <tbody id="insuranceTable"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>⚖️ การคุ้มครอง vs ความต้องการ</h2>
+      <div class="alert danger">
+        <div class="alert-title">❗ Coverage Gap (เพิ่มขึ้นหลังเวนคืน Unit Link)</div>
+        <div class="alert-body">
+          คุ้มครองชีวิตปัจจุบัน <strong>฿1.91M</strong> · หนี้บ้าน <strong>฿5.59M</strong> · 
+          <strong>ขาดอยู่ ฿3.68M</strong> ที่ยูโกะอาจต้องรับภาระ
+          <br>→ แนะนำทำ <strong>MRTA วงเงิน ฿5M</strong> + พิจารณา Term Life เสริม (เบี้ยถูก คุ้มครองสูง)
+        </div>
+      </div>
+      <div class="alert success">
+        <div class="alert-title">✅ ค่ารักษาพยาบาลครอบคลุมดี</div>
+        <div class="alert-body">
+          เหมาจ่าย ฿5M (Plush Gold 2) + ประกันกลุ่ม Daikin + OPD ฿35K/ปี = <strong>เพียงพอ</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========  TAB 7: RETIREMENT (NEW)  ========== -->
+  <div class="panel" id="retirement">
+    <!-- Top KPIs -->
+    <div class="kpi-grid" id="retirementKpis"></div>
+
+    <!-- Hero Section -->
+    <div class="card" style="background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 50%, #fff 100%); border-left: 4px solid var(--amber);">
+      <h2>🌅 แผนเกษียณ — อายุ 60 (ปี 2052) · อีก 27 ปี</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 20px;">
+        ภาพรวมเงินที่คาดว่าจะได้รับเมื่อเกษียณ · รวมประกัน 6 ฉบับ + PVD + ลงทุน
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+        <!-- ประกัน -->
+        <div class="info-box" style="background: var(--bg-amber); border-left: 4px solid var(--amber);">
+          <div class="key">🛡️ ประกัน 6 ฉบับ (ครบสัญญา)</div>
+          <div class="val" style="color: var(--amber); font-size: 22px;" id="retInsuranceTotal">฿1.2M</div>
+          <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">เงินคืนตามตาราง + บำนาญ</div>
+        </div>
+
+        <!-- PVD -->
+        <div class="info-box" style="background: var(--bg-green); border-left: 4px solid var(--green);">
+          <div class="key">🏦 PVD TISCO (คาดการณ์)</div>
+          <div class="val" style="color: var(--green); font-size: 22px;" id="retPvdEstimate">~฿4M</div>
+          <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">โต ~5%/ปี · อายุ 60</div>
+        </div>
+
+        <!-- รวม -->
+        <div class="info-box" style="background: linear-gradient(135deg, var(--bg-green), var(--bg-amber)); border: 2px solid var(--primary);">
+          <div class="key" style="color: var(--primary);">💰 รวมเงินเกษียณคาดการณ์</div>
+          <div class="val" style="color: var(--primary); font-size: 24px;" id="retTotal">~฿5.2M</div>
+          <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">+ บ้าน + ลงทุนอื่น</div>
+        </div>
+      </div>
+
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">💡 หมายเหตุ</div>
+        <div class="alert-body">
+          ตัวเลขเป็น <strong>คาดการณ์ขั้นต่ำ</strong> · ยังไม่นับ:
+          <br>• <strong>โบนัส 27 ปี</strong> (~฿15-20M ถ้า save ลงทุน)
+          <br>• <strong>มูลค่าบ้านที่เพิ่มขึ้น</strong> (Nirvana + Keen)
+          <br>• <strong>เงินเดือนเพิ่ม</strong> + ลงทุนเพิ่มเติม
+          <br>• <strong>มรดกพ่อแม่ของยูโกะ</strong> (ถ้ามี)
+        </div>
+      </div>
+    </div>
+
+    <!-- Insurance Detail Table -->
+    <div class="card">
+      <h2>📋 ประกัน 6 ฉบับ — เงินคืน & ครบสัญญา</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        ข้อมูลจาก Sheet "3. ประกัน รายละเอียด" · ✓ = ส่งครบแล้ว · ⏳ = กำลังส่ง
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>กรมธรรม์</th>
+            <th>เลขสัญญา</th>
+            <th class="num">ทุนประกัน</th>
+            <th class="num">เบี้ย/ปี</th>
+            <th class="num">ส่งแล้ว</th>
+            <th class="num">ครบส่ง (อายุ Champ)</th>
+            <th class="num">ครบสัญญา (เงินได้คืน)</th>
+          </tr>
+        </thead>
+        <tbody id="insurancePolicyTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Timeline Chart -->
+    <div class="card">
+      <h2>📊 Timeline เงินเข้า — ตามอายุ</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        แต่ละจุด = ปีที่กรมธรรม์ครบสัญญา หรือ เริ่มได้บำนาญ
+      </p>
+      <div class="chart-box tall"><canvas id="retirementTimelineChart"></canvas></div>
+    </div>
+
+    <!-- Premium Cost vs Benefit -->
+    <div class="card">
+      <h2>💰 เบี้ยที่จ่ายไปทั้งหมด vs เงินที่ได้คืน</h2>
+      <div class="grid-2">
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px;">📤 เบี้ยที่จ่าย (ตลอดอายุสัญญา)</h3>
+          <div id="premiumPaidList"></div>
+          <div class="info-box" style="background: var(--bg-red); border-color: var(--red); margin-top: 12px;">
+            <div class="key">รวมเบี้ยที่จ่าย</div>
+            <div class="val" style="color: var(--red); font-size: 20px;" id="totalPremiumPaid">—</div>
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px;">📥 เงินคืน + เงินทุน + บำนาญ</h3>
+          <div id="benefitList"></div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); margin-top: 12px;">
+            <div class="key">รวมเงินที่จะได้</div>
+            <div class="val" style="color: var(--green); font-size: 20px;" id="totalBenefit">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">📊 ผลตอบแทนสุทธิ</div>
+        <div class="alert-body" id="netReturnSummary">—</div>
+      </div>
+    </div>
+
+    <!-- Retirement Projections -->
+    <div class="card" style="background: linear-gradient(to right, #f0f9ff, #fff);">
+      <h2>🎯 คาดการณ์เงินเกษียณ ณ อายุ 60 (สถานการณ์)</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        สมมติ PVD โตเฉลี่ย X%/ปี · ค่าเริ่มต้น ฿805,630 · เพิ่มเดือนละ ฿16,570 (ตัวคุณ + บริษัท)
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>สถานการณ์</th>
+            <th class="num">PVD ผลตอบแทน</th>
+            <th class="num">PVD ตอนอายุ 60</th>
+            <th class="num">+ ประกัน</th>
+            <th class="num">รวม</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🚨 Pessimistic (3%/ปี)</td>
+            <td class="num">3.0%</td>
+            <td class="num" id="pvdProj3">—</td>
+            <td class="num">฿1,200,000</td>
+            <td class="num"><strong id="totalProj3">—</strong></td>
+          </tr>
+          <tr style="background: var(--bg-green);">
+            <td>✅ Base case (5%/ปี)</td>
+            <td class="num">5.0%</td>
+            <td class="num" id="pvdProj5">—</td>
+            <td class="num">฿1,200,000</td>
+            <td class="num"><strong id="totalProj5">—</strong></td>
+          </tr>
+          <tr>
+            <td>🎯 Optimistic (7%/ปี)</td>
+            <td class="num">7.0%</td>
+            <td class="num" id="pvdProj7">—</td>
+            <td class="num">฿1,200,000</td>
+            <td class="num"><strong id="totalProj7">—</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==========  TAB 6: LOAN  ========== -->
+  <div class="panel" id="loan">
+    <div class="kpi-grid" id="loanKpis"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>📋 ข้อมูลสินเชื่อ KKP</h2>
+        <div class="info-box">
+          <div class="key">ธนาคาร</div>
+          <div class="val" id="loanBank">—</div>
+        </div>
+        <div class="info-box">
+          <div class="key">วงเงินกู้เริ่มต้น</div>
+          <div class="val" id="loanOriginal">—</div>
+        </div>
+        <div class="info-box" style="background: var(--bg-red); border-color: var(--red);">
+          <div class="key">เงินต้นคงเหลือ (Apr 2026)</div>
+          <div class="val" style="color: var(--red);" id="loanCurrent">—</div>
+        </div>
+        <div class="info-box">
+          <div class="key">วันเริ่มสัญญา · ระยะ</div>
+          <div class="val" id="loanStart">—</div>
+        </div>
+        <div class="info-box">
+          <div class="key">ผ่อนรวมต่อเดือน (ปัจจุบัน)</div>
+          <div class="val" id="loanMonthly">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📊 อัตราดอกเบี้ย</h2>
+        <table>
+          <thead>
+            <tr><th>ช่วงเวลา</th><th>อัตรา</th></tr>
+          </thead>
+          <tbody id="ratesTable"></tbody>
+        </table>
+
+        <div style="margin-top: 16px;">
+          <div class="alert success">
+            <div class="alert-title">🎯 แผนรีไฟแนนซ์</div>
+            <div class="alert-body" id="refinanceNote">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔮 เปรียบเทียบ Scenarios</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        จำลองจากเงินต้นคงเหลือปัจจุบัน ฿5.59M
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>กลยุทธ์</th>
+            <th class="num">ผ่อน/เดือน</th>
+            <th class="num">ระยะเวลา</th>
+            <th class="num">ดอกเบี้ยรวม</th>
+            <th class="num">ประหยัด vs ขั้นต่ำ</th>
+          </tr>
+        </thead>
+        <tbody id="scenariosTable"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>📈 กราฟเปรียบเทียบดอกเบี้ยรวม</h2>
+      <div class="chart-box"><canvas id="loanChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ==========  TAB 7: ACTIONS  ========== -->
+  <div class="panel" id="actions">
+    <div class="card">
+      <h2>📌 Action Items (เรียงลำดับความสำคัญ)</h2>
+      <div id="actionsList"></div>
+    </div>
+
+    <div class="card">
+      <h2>📅 Timeline ที่แนะนำ</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ช่วงเวลา</th>
+            <th>เป้าหมาย</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Q2 2026</td><td>ทำ MRTA + Quote KKP</td><td><span class="badge red">ด่วน</span></td></tr>
+          <tr><td>Q3 2026</td><td>ทบทวนประกันออมทรัพย์ AIA · ขอ Surrender Value</td><td><span class="badge amber">สำคัญ</span></td></tr>
+          <tr><td>Q4 2026</td><td>เตรียมเอกสารแต่งงาน + วางแผนอาชีพยูโกะ</td><td><span class="badge amber">สำคัญ</span></td></tr>
+          <tr><td>2027</td><td>แต่งงาน + จดทะเบียน TH+JP</td><td><span class="badge gray">วางแผน</span></td></tr>
+          <tr><td>Sep 2027</td><td>รีไฟแนนซ์ KKP ครั้งแรก (ปลอดค่าปรับ)</td><td><span class="badge red">สำคัญสุด</span></td></tr>
+          <tr><td>2028+</td><td>ปรับ Asset Allocation · เพิ่ม Global Equity</td><td><span class="badge gray">วางแผน</span></td></tr>
+          <tr><td>~2035</td><td>ปิดหนี้บ้าน (ถ้าทำตามแผน)</td><td><span class="badge green">เป้าหมาย</span></td></tr>
+          <tr><td>~2037 (อายุ 45)</td><td>Financial Independence ฿6.5M Portfolio</td><td><span class="badge green">เป้าหมาย</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    Generated for Champ &amp; Yuko · Updated 25 Apr 2026 · ปรับแก้ตัวเลขที่ <code>DATA</code> ในไฟล์ HTML
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 🚀 RENDER FUNCTIONS — Render dashboard sections from DATA
+// ============================================================
+
+// Async init: โหลด Sheet ก่อน แล้วค่อย render Dashboard
+(async function init() {
+  // 1. โหลดข้อมูลจาก Google Sheet
+  const loaded = await loadSheetData();
+
+  // 2. ถ้าโหลดสำเร็จ → override ค่าใน DATA ด้วยข้อมูลสด
+  if (loaded) {
+    // Profile
+    if (SHEET_DATA.profile_name)     DATA.profile.name = getStr('profile_name');
+    if (SHEET_DATA.profile_age)      DATA.profile.age = getVal('profile_age');
+    if (SHEET_DATA.profile_position) DATA.profile.position = getStr('profile_position');
+    if (SHEET_DATA.profile_company)  DATA.profile.company = getStr('profile_company');
+    if (SHEET_DATA.updated_date)     DATA.profile.updatedDate = getStr('updated_date');
+
+    // Salary breakdown
+    DATA.salaryBreakdown.base             = getVal('salary_base', DATA.salaryBreakdown.base);
+    DATA.salaryBreakdown.seniority        = getVal('salary_seniority', DATA.salaryBreakdown.seniority);
+    DATA.salaryBreakdown.diligence        = getVal('salary_diligence', DATA.salaryBreakdown.diligence);
+    DATA.salaryBreakdown.housingAllowance = getVal('salary_housing', DATA.salaryBreakdown.housingAllowance);
+    DATA.salaryBreakdown.carAllowance     = getVal('salary_car', DATA.salaryBreakdown.carAllowance);
+    DATA.salaryBreakdown.grossSum         = getVal('salary_gross', DATA.salaryBreakdown.grossSum);
+    DATA.salaryBreakdown.netReceived      = getVal('salary_net', DATA.salaryBreakdown.netReceived);
+    DATA.salaryBreakdown.deductions.socialSecurity = getVal('salary_deduct_ssf', DATA.salaryBreakdown.deductions.socialSecurity);
+    DATA.salaryBreakdown.deductions.pvdSelf        = getVal('salary_deduct_pvd', DATA.salaryBreakdown.deductions.pvdSelf);
+    DATA.salaryBreakdown.deductions.tax            = getVal('salary_deduct_tax', DATA.salaryBreakdown.deductions.tax);
+    DATA.salaryBreakdown.companyAddOn.pvdMatch     = getVal('pvd_company_match', DATA.salaryBreakdown.companyAddOn.pvdMatch);
+
+    // อัพเดท salary history Apr 2026 (entry ที่ 11)
+    const aprIdx = DATA.salaryHistory.findIndex(s => s.date === 'Apr 2026');
+    if (aprIdx >= 0) {
+      DATA.salaryHistory[aprIdx].salary = getVal('salary_base', DATA.salaryHistory[aprIdx].salary);
+      DATA.salaryHistory[aprIdx].net = getVal('salary_net', DATA.salaryHistory[aprIdx].net);
+    }
+
+    // อัพเดท income (Net เงินเดือน)
+    const salaryIncome = DATA.income.find(i => i.name.includes('Daikin'));
+    if (salaryIncome) salaryIncome.amount = getVal('salary_net', salaryIncome.amount);
+
+    // Income อื่นๆ
+    const keenIncome = DATA.income.find(i => i.name.includes('Keen'));
+    if (keenIncome) keenIncome.amount = getVal('income_keen_champ', keenIncome.amount);
+
+    // Daikin Benefits — totalBalance ใช้ PVD TISCO (mark-to-market) จาก Cash Sum
+    if (DATA.daikinBenefits) {
+      DATA.daikinBenefits.totalBalance              = getVal('asset_pvd_tisco', DATA.daikinBenefits.totalBalance);
+      DATA.daikinBenefits.pvdSelf.monthlyContribution    = getVal('salary_deduct_pvd', DATA.daikinBenefits.pvdSelf.monthlyContribution);
+      DATA.daikinBenefits.pvdSelf.yearlyContribution     = getVal('pvd_self_yearly', DATA.daikinBenefits.pvdSelf.yearlyContribution);
+      DATA.daikinBenefits.pvdCompany.monthlyContribution = getVal('pvd_company_match', DATA.daikinBenefits.pvdCompany.monthlyContribution);
+      DATA.daikinBenefits.pvdCompany.yearlyContribution  = getVal('pvd_company_yearly', DATA.daikinBenefits.pvdCompany.yearlyContribution);
+    }
+
+    // Assets — ดึงจาก Cash Sum (mark-to-market)
+    const assetMap = {
+      'asset_nirvana': 'Nirvana',
+      'asset_keen': 'Keen Condo',
+      'asset_pvd_tisco': 'PVD TISCO',
+      'asset_funds_only': 'กองทุนรวม',
+      'asset_gold': 'ทองคำ',
+      'asset_cash': 'เงินสด (รวม)',
+      'asset_insurance': 'มูลค่าประกัน',
+      'asset_car': 'Mazda',
+      'asset_stocks': 'หุ้นไทย',
+      'asset_crypto': 'Bitcoin'
+    };
+    for (const [key, search] of Object.entries(assetMap)) {
+      const item = DATA.assets.find(a => a.name.includes(search));
+      if (item) item.amount = getVal(key, item.amount);
+    }
+
+    // Liabilities
+    DATA.liabilities[0].amount = getVal('liability_loan_kkp', DATA.liabilities[0].amount);
+    if (DATA.loan) {
+      DATA.loan.currentBalance = getVal('liability_loan_kkp', DATA.loan.currentBalance);
+      DATA.loan.originalAmount = getVal('loan_original', DATA.loan.originalAmount);
+      DATA.loan.monthlyTotal   = getVal('loan_monthly_total', DATA.loan.monthlyTotal);
+    }
+
+    // Bonus
+    const bonus2026 = DATA.bonusHistory.find(b => b.year === 2026);
+    if (bonus2026) bonus2026.dec = getVal('bonus_dec_2026', bonus2026.dec);
+
+    // แสดง indicator ว่าโหลดจาก Sheet สำเร็จ
+    showSyncStatus(true);
+  } else {
+    showSyncStatus(false);
+  }
+
+  // 3. Render Dashboard ทั้งหมด
+  renderDashboard();
+  initLanguageSwitcher();
+})();
+
+// แสดง status การ sync
+function showSyncStatus(success) {
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position: fixed; top: 12px; right: 12px; z-index: 9999;
+    padding: 8px 14px; border-radius: 6px; font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    background: ${success ? '#16a34a' : '#d97706'}; color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: opacity 0.5s; opacity: 0.95;
+  `;
+  banner.textContent = success ? '✓ Synced from Sheet' : '⚠ Using offline data';
+  document.body.appendChild(banner);
+  setTimeout(() => { banner.style.opacity = '0'; setTimeout(() => banner.remove(), 500); }, 3000);
+}
+
+// ฟังก์ชัน render ทั้งหมด (เดิมที่อยู่ด้านล่าง ย้ายมาห่อใน function นี้)
+function renderDashboard() {
+
+// ── Init Header ──
+document.getElementById('userName').textContent = DATA.profile.name;
+document.getElementById('userAge').textContent = DATA.profile.age;
+document.getElementById('updatedDate').textContent = DATA.profile.updatedDate;
+
+// ── Calculations ──
+const totalIncome      = sum(DATA.income.map(x => x.amount));
+const totalExpense     = sum(DATA.expenses.map(x => x.amount));
+const cashFlow         = totalIncome - totalExpense;
+const totalAssets      = sum(DATA.assets.map(x => x.amount));
+const totalLiabilities = sum(DATA.liabilities.map(x => x.amount));
+const netWorth         = totalAssets - totalLiabilities;
+const totalPremium     = sum(DATA.insurance.filter(x => x.status !== 'paidup').map(x => x.premium));
+const totalDeath       = sum(DATA.insurance.map(x => x.death));
+const totalCritical    = sum(DATA.insurance.map(x => x.critical));
+const totalMed         = sum(DATA.insurance.map(x => x.med));
+
+// ── KPI helper ──
+function renderKpis(containerId, kpis) {
+  document.getElementById(containerId).innerHTML = kpis.map(k => `
+    <div class="kpi ${k.color || 'primary'}">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub || ''}</div>
+    </div>
+  `).join('');
+}
+
+// ── List helper ──
+function renderList(containerId, items, type) {
+  // Calculate total for percentage
+  const total = items.reduce((s, item) => s + item.amount, 0);
+
+  document.getElementById(containerId).innerHTML = items.map((item, idx) => {
+    const pct = total > 0 ? (item.amount / total * 100) : 0;
+    const barColor = type === 'expense' ? 'var(--red)' : 'var(--green)';
+    const sign = type === 'expense' ? '−' : (type === 'income' ? '+' : '');
+
+    return `
+      <div class="item" style="position: relative;">
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+          <div style="
+            width: 28px; height: 28px; border-radius: 50%;
+            background: ${type === 'expense' ? '#fef2f2' : '#f0fdf4'};
+            color: ${barColor}; font-size: 12px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+          ">${idx + 1}</div>
+          <div style="flex: 1;">
+            <div class="name">${item.name}</div>
+            <div class="note">${item.note || ''}</div>
+            <div style="margin-top: 6px; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden;">
+              <div style="height: 100%; width: ${pct.toFixed(1)}%; background: ${barColor}; border-radius: 2px;"></div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align: right; min-width: 90px; margin-left: 12px;">
+          <div class="amount ${type || ''}" style="margin-bottom: 2px;">${sign}${fmt.baht(item.amount)}</div>
+          <div style="font-size: 11px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace;">
+            ${pct.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── TAB 1: Overview ──
+// คำนวณ Wealth Building components (ไม่รวม Cash เหลือ - แยกออกเป็น KPI ต่างหาก)
+const cashFlowOnly = cashFlow;  // เงินเหลือสดในกระเป๋า (ใช้ส่วนตัว/ปาร์ตี้/ตีกอล์ฟ)
+const stockSaving = 15000;       // ออมหุ้น
+const debtPaydown = 10343;       // โป๊ะหนี้
+const pvdSelfMonth = 9942;       // ออมทรัพย์ฝากเอง
+const pvdCompanyMonth = 6628;    // ไดกิ้นสมทบ
+// ⚠️ Wealth Building = เงินสะสมระยะยาว (ไม่นับ cash เหลือ)
+const totalWealthMonthly = stockSaving + debtPaydown + pvdSelfMonth + pvdCompanyMonth;
+
+// โบนัสเฉลี่ยต่อเดือน
+const annualBonus = DATA.bonusHistory.find(b => b.current).dec;
+const bonusMonthlyAvg = annualBonus / 12;
+const totalWealthWithBonus = totalWealthMonthly + bonusMonthlyAvg;
+const cashFlowWithBonus = cashFlowOnly + bonusMonthlyAvg;
+
+renderKpis('overviewKpis', [
+  { label: 'NET WORTH', value: fmt.bahtShort(netWorth), color: 'primary', sub: 'Assets − Liabilities' },
+  { label: 'WEALTH BUILDING / เดือน', value: fmt.bahtShort(totalWealthMonthly), color: 'green', sub: `รวมโบนัสเฉลี่ย: ${fmt.bahtShort(totalWealthWithBonus)}/เดือน` },
+  { label: 'CASH เหลือใช้สด / เดือน', value: '+' + fmt.bahtShort(cashFlowOnly), color: 'amber', sub: `รวมโบนัสเฉลี่ย: ${fmt.bahtShort(cashFlowWithBonus)}/เดือน · ใช้ส่วนตัว/ฉุกเฉิน` },
+  { label: 'หนี้สินคงเหลือ', value: fmt.bahtShort(totalLiabilities), color: 'red', sub: 'บ้าน Nirvana KKP' }
+]);
+
+// Wealth Building components rendering
+document.getElementById('wbCashFlow').textContent = '+' + fmt.baht(cashFlowOnly) + ' / เดือน';
+document.getElementById('wbStock').textContent = '+' + fmt.baht(stockSaving) + ' / เดือน';
+document.getElementById('wbDebt').textContent = '+' + fmt.baht(debtPaydown) + ' / เดือน';
+document.getElementById('wbPvdSelf').textContent = '+' + fmt.baht(pvdSelfMonth) + ' / เดือน';
+document.getElementById('wbPvdCompany').textContent = '+' + fmt.baht(pvdCompanyMonth) + ' / เดือน';
+document.getElementById('wbTotal').textContent = '+' + fmt.baht(totalWealthMonthly) + ' / เดือน';
+
+document.getElementById('wbBonusMonthly').textContent = '+' + fmt.baht(Math.round(bonusMonthlyAvg)) + ' / เดือน';
+document.getElementById('wbTotalWithBonus').textContent = '+' + fmt.baht(Math.round(totalWealthWithBonus)) + ' / เดือน';
+
+document.getElementById('wealthAnnualSummary').innerHTML = `
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div>
+      <div style="font-size: 12px; color: var(--text-mute); margin-bottom: 4px;">ไม่รวมโบนัส (Conservative)</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--green);">
+        ฿${(totalWealthMonthly * 12).toLocaleString()}/ปี
+      </div>
+    </div>
+    <div>
+      <div style="font-size: 12px; color: var(--text-mute); margin-bottom: 4px;">รวมโบนัส (Realistic)</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--green);">
+        ฿${(totalWealthMonthly * 12 + annualBonus).toLocaleString()}/ปี
+      </div>
+    </div>
+  </div>
+  <div style="font-size: 12px; margin-top: 12px; color: var(--text-mute);">
+    💡 นี่คือเงินที่กำลังสะสมเป็น Wealth ของคุณทุกเดือน — บางส่วนเป็นเงินสด · บางส่วนเป็นการลดหนี้ · บางส่วนเป็น Asset ระยะยาว
+  </div>
+`;
+
+// Goals progress
+document.getElementById('goalsList').innerHTML = DATA.goals.map(g => {
+  let pct, displayPct, color;
+  if (g.format === 'money_inverse') {
+    pct = (g.current / g.target) * 100;
+    displayPct = `จ่ายไป ${fmt.pct(pct)}`;
+    color = 'red';
+  } else {
+    pct = Math.min((g.current / g.target) * 100, 100);
+    displayPct = fmt.pct((g.current / g.target) * 100);
+    color = pct >= 100 ? 'green' : pct >= 50 ? '' : 'amber';
+  }
+  return `
+    <div class="progress">
+      <div class="info">
+        <span>${g.name}</span>
+        <span class="pct">${displayPct}</span>
+      </div>
+      <div class="bar"><div class="fill ${color}" style="width: ${pct}%;"></div></div>
+      <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">
+        ${fmt.bahtShort(g.current)} / ${fmt.bahtShort(g.target)}
+      </div>
+    </div>
+  `;
+}).join('');
+
+// ── TAB 2: Cash Flow ──
+renderKpis('cashflowKpis', [
+  { label: 'รายรับรวม / เดือน', value: fmt.bahtShort(totalIncome), color: 'green', sub: `${DATA.income.length} แหล่งรายได้` },
+  { label: 'รายจ่ายรวม / เดือน', value: fmt.bahtShort(totalExpense), color: 'red', sub: `${DATA.expenses.length} หมวด` },
+  { label: 'Net / เดือน', value: '+' + fmt.bahtShort(cashFlow), color: 'primary', sub: `${fmt.pct(cashFlow/totalIncome*100)} of income` },
+  { label: 'รวม / ปี (Net)', value: fmt.bahtShort(cashFlow*12), color: 'amber', sub: 'ก่อนรวม Bonus ปลายปี' }
+]);
+
+document.getElementById('incomeTotal').textContent = '+' + fmt.baht(totalIncome);
+document.getElementById('expenseTotal').textContent = '−' + fmt.baht(totalExpense);
+renderList('incomeList', DATA.income, 'income');
+renderList('expenseList', DATA.expenses, 'expense');
+
+// ── TAB 3: Balance Sheet ──
+renderKpis('balanceKpis', [
+  { label: 'สินทรัพย์รวม', value: fmt.bahtShort(totalAssets), color: 'primary', sub: `${DATA.assets.length} รายการ` },
+  { label: 'หนี้สินรวม', value: fmt.bahtShort(totalLiabilities), color: 'red', sub: 'บ้าน Nirvana' },
+  { label: 'NET WORTH', value: fmt.bahtShort(netWorth), color: 'green', sub: `Debt-to-Asset: ${fmt.pct(totalLiabilities/totalAssets*100)}` },
+  { label: 'อสังหา (Net)', value: fmt.bahtShort(DATA.assets.filter(a => a.type === 'real_estate').reduce((s,a)=>s+a.amount,0) - totalLiabilities), color: 'amber', sub: 'หลังหักหนี้บ้าน' }
+]);
+
+document.getElementById('assetsTotal').textContent = fmt.baht(totalAssets);
+document.getElementById('liabilitiesTotal').textContent = '−' + fmt.baht(totalLiabilities);
+document.getElementById('netWorthValue').textContent = fmt.baht(netWorth);
+renderList('assetsList', DATA.assets);
+renderList('liabilitiesList', DATA.liabilities, 'expense');
+
+// ── TAB 4: Career & Profile ──
+document.getElementById('profileFullName').textContent = DATA.profile.name;
+document.getElementById('profilePosition').textContent = DATA.profile.position;
+document.getElementById('profileTitle').textContent = `${DATA.profile.title} · ${DATA.profile.company}`;
+document.getElementById('profileLocation').textContent = DATA.profile.location;
+document.getElementById('profileEmail').textContent = DATA.profile.email;
+document.getElementById('profilePhone').textContent = DATA.profile.phone;
+document.getElementById('profileLanguages').textContent = DATA.profile.languages;
+document.getElementById('profileEducation').textContent = DATA.profile.education;
+
+// Career timeline - visual with promotion highlights
+document.getElementById('careerTimeline').innerHTML = DATA.careerPath.map((c, i) => {
+  const isPromotion = c.promotion;
+  const isCurrent = c.current;
+  const dotColor = isCurrent ? 'var(--primary)' : (isPromotion ? 'var(--green)' : 'var(--text-mute)');
+  const dotSize = isCurrent ? '20px' : (isPromotion ? '16px' : '12px');
+  const isLast = i === DATA.careerPath.length - 1;
+
+  return `
+    <div style="display: grid; grid-template-columns: 80px 24px 1fr; gap: 16px; align-items: flex-start; padding-bottom: ${isLast ? '0' : '20px'}; position: relative;">
+      <!-- Year column -->
+      <div style="text-align: right; padding-top: 2px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 16px; color: ${isCurrent ? 'var(--primary)' : 'var(--text)'}; font-weight: 700;">
+          ${c.year}
+        </div>
+        ${isCurrent ? '<span class="badge green" style="margin-top: 4px; display: inline-block; font-size: 10px;">CURRENT</span>' : ''}
+        ${isPromotion && !isCurrent ? '<span class="badge amber" style="margin-top: 4px; display: inline-block; font-size: 10px;">PROMOTED</span>' : ''}
+      </div>
+
+      <!-- Timeline dot + line -->
+      <div style="position: relative; height: 100%; display: flex; flex-direction: column; align-items: center;">
+        <div style="width: ${dotSize}; height: ${dotSize}; border-radius: 50%; background: ${dotColor}; border: 3px solid var(--surface); box-shadow: 0 0 0 2px ${dotColor}; margin-top: 4px; flex-shrink: 0; z-index: 2;"></div>
+        ${!isLast ? `<div style="width: 2px; flex: 1; background: var(--border); margin-top: 4px; min-height: 60px;"></div>` : ''}
+      </div>
+
+      <!-- Content -->
+      <div style="padding-bottom: ${isLast ? '0' : '8px'};">
+        <div style="font-size: 11px; color: var(--text-mute); margin-bottom: 4px;">${c.icon} ${c.department}</div>
+        <div style="font-weight: 700; font-size: 16px; margin-bottom: 6px; color: ${isCurrent ? 'var(--primary)' : 'var(--text)'};">
+          ${c.role}
+        </div>
+        <div style="font-size: 13px; color: var(--text-soft); line-height: 1.6;">${c.desc}</div>
+      </div>
+    </div>
+  `;
+}).join('');
+
+// Promotion milestones summary
+const promotions = DATA.careerPath.filter(c => c.promotion);
+document.getElementById('promotionMilestones').innerHTML = promotions.map(p => `
+  <div style="text-align: center; padding: 14px; background: ${p.current ? 'var(--bg-green)' : 'var(--bg)'}; border-radius: 6px; border: 1px solid ${p.current ? 'var(--green)' : 'var(--border)'};">
+    <div style="font-size: 24px; margin-bottom: 6px;">${p.icon}</div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: ${p.current ? 'var(--green)' : 'var(--primary)'};">${p.year}</div>
+    <div style="font-size: 12px; color: var(--text-soft); margin-top: 4px;">${p.role.split('—')[0].trim()}</div>
+  </div>
+`).join('');
+
+// Expertise list
+document.getElementById('expertiseList').innerHTML = DATA.expertise.map(e => `
+  <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg); border-radius: 6px; font-size: 13px;">
+    <span style="color: var(--primary);">✓</span>
+    <span>${e}</span>
+  </div>
+`).join('');
+
+// ── TAB 5: Salary ──
+const lastSalary = DATA.salaryHistory[DATA.salaryHistory.length - 2]; // Apr 2026
+const firstSalary = DATA.salaryHistory[0];
+const yearsWorking = 11;
+const salaryGrowthPct = (lastSalary.salary / firstSalary.salary - 1) * 100;
+const cagr = (Math.pow(lastSalary.salary / firstSalary.salary, 1/yearsWorking) - 1) * 100;
+
+// Find current year bonus (Dec only - real bonus)
+const currentYearBonus = DATA.bonusHistory.find(b => b.current);
+const totalCompPerYear = (lastSalary.net * 12) + (currentYearBonus ? currentYearBonus.dec : 0);
+
+renderKpis('salaryKpis', [
+  { label: 'เงินเดือนปัจจุบัน', value: fmt.baht(lastSalary.salary), color: 'primary', sub: lastSalary.milestone },
+  { label: 'Net / เดือน', value: fmt.baht(lastSalary.net), color: 'green', sub: 'หลังหักทุกอย่าง · เงินช่วยค่าบ้าน + ค่ารถรวมแล้ว' },
+  { label: 'โบนัสจริง ธ.ค. 2026', value: fmt.bahtShort(currentYearBonus.dec), color: 'amber', sub: '~53% ของเงินเดือนต่อปี' },
+  { label: 'รวมรายได้ Daikin / ปี', value: fmt.bahtShort(totalCompPerYear), color: 'primary', sub: `Net × 12 + โบนัสจริง · CAGR ${fmt.pct(cagr)}` }
+]);
+
+document.getElementById('salaryTable').innerHTML = DATA.salaryHistory.map(s => `
+  <tr>
+    <td><strong>${s.date}</strong></td>
+    <td class="num">฿${s.salary.toLocaleString()}</td>
+    <td class="num">฿${s.net.toLocaleString()}</td>
+    <td>${s.milestone}</td>
+  </tr>
+`).join('');
+
+// ── Daikin Benefits (moved to Salary tab) ──
+const pvdSelf = DATA.daikinBenefits.pvdSelf;
+const pvdCompany = DATA.daikinBenefits.pvdCompany;
+const gi = DATA.daikinBenefits.groupInsurance;
+const pvdMarketValue = DATA.daikinBenefits.totalBalance;       // PVD TISCO mark-to-market
+const yearlyContribTotal = DATA.daikinBenefits.yearlyContribution; // 1.Saraly AZ ปีนี้
+
+document.getElementById('pvdSelfMonthly').textContent = fmt.baht(pvdSelf.monthlyContribution) + ' / เดือน';
+document.getElementById('pvdSelfPct').textContent = pvdSelf.pctOfSalaryRange + ' (ปัจจุบัน ' + pvdSelf.currentPct + '%)';
+document.getElementById('pvdSelfBalance').textContent = fmt.baht(pvdSelf.yearlyContribution) + ' / ปี';
+document.getElementById('pvdSelfNote').textContent = pvdSelf.note;
+
+document.getElementById('pvdCompanyMonthly').textContent = '+' + fmt.baht(pvdCompany.monthlyContribution) + ' / เดือน';
+document.getElementById('pvdCompanyPct').textContent = pvdCompany.pctOfSalaryRange + ' (ปัจจุบัน ' + pvdCompany.currentPct + '%)';
+document.getElementById('pvdCompanyBalance').textContent = fmt.baht(pvdCompany.yearlyContribution) + ' / ปี';
+document.getElementById('pvdCompanyNote').textContent = pvdCompany.note;
+
+document.getElementById('groupOpd').textContent = fmt.baht(gi.opd);
+document.getElementById('groupOther').textContent = gi.note;
+
+document.getElementById('totalBenefits').innerHTML = `
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div>
+      <div style="font-size: 12px; color: var(--text-mute); margin-bottom: 4px;">📊 มูลค่าจริงปัจจุบัน (TISCO Mark-to-market)</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--green);">
+        ฿${pvdMarketValue.toLocaleString()}
+      </div>
+      <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">
+        → ใช้ใน Net Worth · จาก Cash Sum
+      </div>
+    </div>
+    <div>
+      <div style="font-size: 12px; color: var(--text-mute); margin-bottom: 4px;">💼 ฝากเข้าปีนี้ (สำหรับวางแผนภาษี)</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--primary);">
+        ฿${yearlyContribTotal.toLocaleString()}/ปี
+      </div>
+      <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">
+        → ลดหย่อนภาษีได้ · จาก 1.Saraly
+      </div>
+    </div>
+  </div>
+  <div style="font-size: 12px; margin-top: 12px; color: var(--text-mute); padding-top: 12px; border-top: 1px solid var(--border);">
+    ⚠️ <strong>หมายเหตุ:</strong> มูลค่าตลาด ฿${pvdMarketValue.toLocaleString()} ต่ำกว่าเงินที่ฝากสะสม
+    เพราะ TISCO PVD เป็นกองทุนที่มีความผันผวน · แนะนำเช็คใน TISCO app เพื่อยืนยัน · ทำงาน 11 ปี = Vested 100%
+  </div>
+`;
+
+// ── Bonus Table ──
+// Calculate base annual salary for % calculation
+const annualBaseSalary = lastSalary.salary * 12;
+
+document.getElementById('bonusTable').innerHTML = DATA.bonusHistory.map(b => {
+  const isActual = b.actual;
+  const isForecast = b.forecast;
+  const bgStyle = b.current ? 'style="background: var(--bg-amber);"' : (isForecast ? 'style="opacity: 0.7;"' : '');
+
+  const yearSalary = DATA.salaryHistory.find(s => s.date.includes(b.year.toString()))?.salary || lastSalary.salary;
+  const pctOfSalary = ((b.dec / (yearSalary * 12)) * 100).toFixed(1);
+
+  // Badge logic
+  let badge = '';
+  if (isActual) {
+    badge = ' <span class="badge green">✓ จริง</span>';
+  } else if (b.current) {
+    badge = ' <span class="badge amber">⏳ คาดการณ์ (ปีนี้)</span>';
+  } else if (isForecast) {
+    badge = ' <span class="badge gray">📊 คาดการณ์</span>';
+  }
+
+  return `
+    <tr ${bgStyle}>
+      <td><strong>${b.year}</strong>${badge}</td>
+      <td>${b.role}</td>
+      <td class="num"><strong>฿${b.dec.toLocaleString()}</strong></td>
+      <td class="num">~${pctOfSalary}%</td>
+    </tr>
+  `;
+}).join('');
+
+// ── TAB 5: Insurance ──
+renderKpis('insuranceKpis', [
+  { label: 'เบี้ยรวม / ปี (Active)', value: fmt.bahtShort(totalPremium), color: 'primary', sub: `~${fmt.bahtShort(totalPremium/12)}/เดือน` },
+  { label: 'คุ้มครองชีวิตรวม', value: fmt.bahtShort(totalDeath), color: 'red', sub: '⚠️ น้อยกว่าหนี้บ้าน' },
+  { label: 'โรคร้ายรวม', value: fmt.bahtShort(totalCritical), color: 'amber', sub: 'ส่วนใหญ่จาก Plush Gold 2' },
+  { label: 'เหมาจ่ายค่ารักษา', value: fmt.bahtShort(totalMed), color: 'green', sub: '+ Daikin OPD + กลุ่ม' }
+]);
+
+const priorityBadge = (p) => {
+  if (p.includes('ทบทวน')) return `<span class="badge amber">${p}</span>`;
+  if (p.includes('ใหม่'))   return `<span class="badge green">${p}</span>`;
+  if (p.includes('⭐'))     return `<span class="badge green">${p}</span>`;
+  return `<span class="badge gray">${p}</span>`;
+};
+
+document.getElementById('insuranceTable').innerHTML = DATA.insurance.map(p => `
+  <tr ${p.priority.includes('⭐') ? 'style="background: var(--bg-green);"' : ''} ${p.status === 'surrendered' ? 'style="opacity: 0.55;"' : ''}>
+    <td><strong>${p.name}</strong>${p.status === 'paidup' ? ' <span class="badge green">PAID UP</span>' : ''}${p.status === 'surrendered' ? ' <span class="badge gray">SURRENDERED</span>' : ''}</td>
+    <td class="num">${p.premium ? fmt.baht(p.premium) : '—'}</td>
+    <td class="num">${p.death ? fmt.baht(p.death) : '—'}</td>
+    <td class="num">${p.critical ? fmt.baht(p.critical) : '—'}</td>
+    <td class="num">${p.med ? fmt.baht(p.med) : '—'}</td>
+    <td>${priorityBadge(p.priority)}</td>
+  </tr>
+`).join('');
+
+// ============================================================
+// ── TAB 7: Retirement (NEW) ──
+// ============================================================
+
+// Sum up insurance premiums and benefits
+let totalInsurancePremium = 0;
+let totalInsuranceBenefit = 0;
+const policyData = DATA.insurancePolicies.map(p => {
+  const totalPremium = p.premium * p.total;
+  const benefit = p.maturityAmount || p.sumInsured;
+  totalInsurancePremium += totalPremium;
+  totalInsuranceBenefit += benefit;
+  return { ...p, totalPremium, benefit };
+});
+
+// PVD projections at age 60 (27 years from now)
+const pvdNow = getVal('asset_pvd_tisco', 805630);
+const pvdMonthlyContrib = 16570;  // ตัวคุณ + บริษัท
+const yearsToRetirement = 27;
+
+function pvdAtAge60(annualReturn) {
+  // FV of current balance + FV of monthly contributions
+  const r = annualReturn / 12;
+  const n = yearsToRetirement * 12;
+  const fvCurrent = pvdNow * Math.pow(1 + annualReturn, yearsToRetirement);
+  const fvContrib = pvdMonthlyContrib * ((Math.pow(1 + r, n) - 1) / r);
+  return fvCurrent + fvContrib;
+}
+
+const pvd_3pct = pvdAtAge60(0.03);
+const pvd_5pct = pvdAtAge60(0.05);
+const pvd_7pct = pvdAtAge60(0.07);
+const insuranceTotalAt60 = totalInsuranceBenefit;
+
+// Top KPIs for Retirement
+renderKpis('retirementKpis', [
+  { label: 'ปัจจุบัน', value: 'อายุ 33', color: 'primary', sub: `เกษียณอีก ${yearsToRetirement} ปี (2052)` },
+  { label: 'ประกัน 6 ฉบับ (รวม)', value: fmt.bahtShort(insuranceTotalAt60), color: 'amber', sub: 'เงินคืน + ทุนชีวิต + บำนาญ' },
+  { label: 'PVD คาดการณ์ (5%/ปี)', value: fmt.bahtShort(pvd_5pct), color: 'green', sub: 'เริ่ม ฿805K + เพิ่ม ฿16K/เดือน' },
+  { label: 'รวมเงินเกษียณ (Base case)', value: fmt.bahtShort(pvd_5pct + insuranceTotalAt60), color: 'primary', sub: 'ยังไม่นับโบนัส + บ้าน' }
+]);
+
+// Update hero numbers
+document.getElementById('retInsuranceTotal').textContent = fmt.bahtShort(insuranceTotalAt60);
+document.getElementById('retPvdEstimate').textContent = '~' + fmt.bahtShort(pvd_5pct);
+document.getElementById('retTotal').textContent = '~' + fmt.bahtShort(pvd_5pct + insuranceTotalAt60);
+
+// Insurance policy table
+document.getElementById('insurancePolicyTable').innerHTML = policyData.map(p => {
+  const statusBadge = p.status.includes('✓') ?
+    '<span class="badge green">' + p.status + '</span>' :
+    p.status === 'เพิ่งเริ่ม' ?
+    '<span class="badge gray">' + p.status + '</span>' :
+    '<span class="badge amber">' + p.status + '</span>';
+
+  const maturityInfo = p.type === 'wholeLife' ?
+    `<em style="color: var(--text-mute); font-size: 12px;">ตลอดชีพ</em><br>ทุน ฿${p.maturityAmount.toLocaleString()}` :
+    p.type === 'annuity' ?
+    `อายุ ${p.maturityAge} (${p.maturityYear})<br>+ บำนาญ ${p.pensionStartAge}+` :
+    `อายุ ${p.maturityAge} (${p.maturityYear})<br>~฿${p.maturityAmount.toLocaleString()}`;
+
+  return `
+    <tr>
+      <td><strong>${p.no}</strong></td>
+      <td>
+        <div style="font-weight: 600;">${p.name}</div>
+        <div style="font-size: 11px; color: var(--text-mute); margin-top: 2px;">${statusBadge}</div>
+      </td>
+      <td style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">${p.code}</td>
+      <td class="num">${p.sumInsured > 0 ? fmt.baht(p.sumInsured) : '—'}</td>
+      <td class="num">฿${p.premium.toLocaleString()}</td>
+      <td class="num">${p.paid}/${p.total}<br><span style="font-size: 11px; color: var(--text-mute);">เหลือ ${p.yearsLeft} ปี</span></td>
+      <td class="num">อายุ ${33 + p.yearsLeft}</td>
+      <td class="num"><strong>${maturityInfo}</strong></td>
+    </tr>
+  `;
+}).join('');
+
+// Retirement Timeline Chart - cash inflow at each age
+const timelinePoints = [];
+DATA.insurancePolicies.forEach(p => {
+  if (p.maturityYear && p.type !== 'wholeLife') {
+    timelinePoints.push({
+      age: p.maturityAge,
+      year: p.maturityYear,
+      label: p.name,
+      amount: p.maturityAmount
+    });
+  }
+});
+// Add pension start
+const pension = DATA.insurancePolicies.find(p => p.type === 'annuity');
+if (pension) {
+  timelinePoints.push({
+    age: pension.pensionStartAge,
+    year: 2047,
+    label: 'บำนาญเริ่มจ่าย',
+    amount: pension.pensionAmountYearly
+  });
+}
+// Add age 60 retirement
+timelinePoints.push({ age: 60, year: 2052, label: 'เกษียณ', amount: 0 });
+
+timelinePoints.sort((a, b) => a.age - b.age);
+
+new Chart(document.getElementById('retirementTimelineChart'), {
+  type: 'bar',
+  data: {
+    labels: timelinePoints.map(p => `${p.age} (${p.year})`),
+    datasets: [{
+      label: 'เงินเข้า / เหตุการณ์',
+      data: timelinePoints.map(p => p.amount),
+      backgroundColor: timelinePoints.map(p =>
+        p.label === 'เกษียณ' ? '#ef4444' :
+        p.label.includes('บำนาญ') ? '#16a34a' :
+        '#d97706'
+      ),
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          afterTitle: c => timelinePoints[c[0].dataIndex].label,
+          label: c => c.parsed.y > 0 ? `฿${c.parsed.y.toLocaleString()}` : 'เป้าหมายเกษียณ'
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, title: { display: true, text: 'อายุ Champ (ปี)' }},
+      y: { ticks: { callback: v => fmt.bahtShort(v) }}
+    }
+  }
+});
+
+// Premium Paid List
+document.getElementById('premiumPaidList').innerHTML = policyData.map(p => `
+  <div class="info-box" style="border-left: 3px solid var(--red);">
+    <div class="key" style="font-size: 12px;">#${p.no} ${p.name}</div>
+    <div class="val" style="color: var(--red); font-size: 14px;">
+      ฿${p.premium.toLocaleString()}/ปี × ${p.total}ปี = ฿${p.totalPremium.toLocaleString()}
+    </div>
+  </div>
+`).join('');
+
+// Benefit List
+document.getElementById('benefitList').innerHTML = policyData.map(p => {
+  const benefitText = p.type === 'wholeLife' ?
+    `ทุนชีวิต ฿${p.maturityAmount.toLocaleString()} (ตลอดชีพ)` :
+    p.type === 'annuity' ?
+    `ครบสัญญา ฿${p.maturityAmount.toLocaleString()} + บำนาญ` :
+    `ครบสัญญา ฿${p.maturityAmount.toLocaleString()}`;
+
+  return `
+    <div class="info-box" style="border-left: 3px solid var(--green);">
+      <div class="key" style="font-size: 12px;">#${p.no} ${p.name}</div>
+      <div class="val" style="color: var(--green); font-size: 14px;">${benefitText}</div>
+    </div>
+  `;
+}).join('');
+
+document.getElementById('totalPremiumPaid').textContent = '฿' + totalInsurancePremium.toLocaleString();
+document.getElementById('totalBenefit').textContent = '฿' + totalInsuranceBenefit.toLocaleString();
+
+const netReturn = totalInsuranceBenefit - totalInsurancePremium;
+const returnPct = (netReturn / totalInsurancePremium * 100).toFixed(1);
+document.getElementById('netReturnSummary').innerHTML = `
+  <div style="font-size: 14px;">
+    เบี้ยรวม <strong style="color: var(--red);">฿${totalInsurancePremium.toLocaleString()}</strong> →
+    คืน <strong style="color: var(--green);">฿${totalInsuranceBenefit.toLocaleString()}</strong>
+    <br>
+    <strong style="color: ${netReturn > 0 ? 'var(--green)' : 'var(--red)'}; font-size: 18px;">
+      ${netReturn > 0 ? '+' : ''}฿${netReturn.toLocaleString()} (${returnPct}%)
+    </strong>
+    เป็นเวลา ~25-30 ปี
+  </div>
+  <div style="font-size: 12px; margin-top: 8px; color: var(--text-mute);">
+    💡 ผลตอบแทน ${returnPct}% ใน 25-30 ปี = เฉลี่ยปีละ ${(parseFloat(returnPct)/27).toFixed(1)}% (ค่อนข้างต่ำเทียบกับลงทุน)
+    <br>📌 แต่ได้ <strong>ความคุ้มครอง</strong> + <strong>การออมแบบมีระเบียบ</strong> + <strong>ลดหย่อนภาษี</strong> ระหว่างทาง
+  </div>
+`;
+
+// PVD projections
+document.getElementById('pvdProj3').textContent = '฿' + Math.round(pvd_3pct).toLocaleString();
+document.getElementById('pvdProj5').textContent = '฿' + Math.round(pvd_5pct).toLocaleString();
+document.getElementById('pvdProj7').textContent = '฿' + Math.round(pvd_7pct).toLocaleString();
+document.getElementById('totalProj3').textContent = '฿' + Math.round(pvd_3pct + insuranceTotalAt60).toLocaleString();
+document.getElementById('totalProj5').textContent = '฿' + Math.round(pvd_5pct + insuranceTotalAt60).toLocaleString();
+document.getElementById('totalProj7').textContent = '฿' + Math.round(pvd_7pct + insuranceTotalAt60).toLocaleString();
+
+// ── TAB 6: Loan ──
+const debtPaid = DATA.loan.originalAmount - DATA.loan.currentBalance;
+const paidPct = (debtPaid / DATA.loan.originalAmount) * 100;
+
+renderKpis('loanKpis', [
+  { label: 'เงินต้นคงเหลือ', value: fmt.bahtShort(DATA.loan.currentBalance), color: 'red', sub: `จาก ฿${DATA.loan.originalAmount.toLocaleString()}` },
+  { label: 'จ่ายไปแล้ว', value: fmt.bahtShort(debtPaid), color: 'green', sub: `${fmt.pct(paidPct)} ของวงเงิน` },
+  { label: 'ผ่อน / เดือน', value: fmt.bahtShort(DATA.loan.monthlyTotal), color: 'primary', sub: `ขั้นต่ำ ${fmt.bahtShort(DATA.loan.monthlyMin)} + โป๊ะ ${fmt.bahtShort(DATA.loan.monthlyExtra)}` },
+  { label: 'ผ่อนแล้ว', value: '~1.5 ปี', color: 'amber', sub: `เริ่ม ${DATA.loan.startDate}` }
+]);
+
+document.getElementById('loanBank').textContent = DATA.loan.bank;
+document.getElementById('loanOriginal').textContent = fmt.baht(DATA.loan.originalAmount);
+document.getElementById('loanCurrent').textContent = fmt.baht(DATA.loan.currentBalance);
+document.getElementById('loanStart').textContent = `${DATA.loan.startDate} · ${DATA.loan.termYears} ปี`;
+document.getElementById('loanMonthly').textContent = fmt.baht(DATA.loan.monthlyTotal);
+
+document.getElementById('ratesTable').innerHTML = DATA.loan.interestRates.map(r => `
+  <tr>
+    <td><strong>${r.period}</strong><div class="note" style="font-size: 11px; color: var(--text-mute);">${r.note}</div></td>
+    <td class="num"><strong>${r.rate}</strong></td>
+  </tr>
+`).join('');
+
+document.getElementById('refinanceNote').innerHTML = `
+  เริ่มรีไฟแนนซ์ได้ <strong>${DATA.loan.refinancePlan.date}</strong> · ${DATA.loan.refinancePlan.noPenalty ? '✅ ปลอดค่าปรับ' : '⚠️ มีค่าปรับ'}
+  <br>เป้าหมายดอกใหม่: <strong>${DATA.loan.refinancePlan.targetRate}</strong>
+  <br><span style="font-size: 12px; color: var(--text-mute);">${DATA.loan.refinancePlan.note}</span>
+`;
+
+const minScenario = DATA.loan.scenarios[0];
+document.getElementById('scenariosTable').innerHTML = DATA.loan.scenarios.map((s, i) => {
+  const savings = i === 0 ? '—' : fmt.bahtShort(minScenario.totalInterest - s.totalInterest);
+  const isRecommended = i === 2;
+  return `
+    <tr ${isRecommended ? 'style="background: var(--bg-green);"' : ''}>
+      <td><strong>${s.name}</strong>${isRecommended ? ' <span class="badge green">แนะนำ</span>' : ''}</td>
+      <td class="num">${fmt.baht(s.monthly)}</td>
+      <td class="num">${s.years} ปี</td>
+      <td class="num">${fmt.bahtShort(s.totalInterest)}</td>
+      <td class="num" style="color: ${i === 0 ? 'inherit' : 'var(--green)'}; font-weight: 600;">${i === 0 ? savings : '+' + savings}</td>
+    </tr>
+  `;
+}).join('');
+
+// ── TAB 7: Actions ──
+document.getElementById('actionsList').innerHTML = DATA.actions.map(a => `
+  <div class="alert ${a.level}">
+    <div class="alert-title">${a.title}</div>
+    <div class="alert-body">${a.body}</div>
+  </div>
+`).join('');
+
+// ============================================================
+// 📊 CHARTS
+// ============================================================
+Chart.defaults.font.family = 'Sarabun, sans-serif';
+Chart.defaults.color = '#555';
+
+// Wealth Building Chart (4 components only - cash flow แยกออกแล้ว)
+new Chart(document.getElementById('wealthChart'), {
+  type: 'doughnut',
+  data: {
+    labels: [
+      'ออมหุ้น',
+      'โป๊ะหนี้บ้าน',
+      'PVD ฝากเอง',
+      'ไดกิ้นสมทบ (ฟรี)'
+    ],
+    datasets: [{
+      data: [stockSaving, debtPaydown, pvdSelfMonth, pvdCompanyMonth],
+      backgroundColor: ['#1f6feb', '#d97706', '#8b5cf6', '#06b6d4'],
+      borderColor: '#fff',
+      borderWidth: 3
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          boxWidth: 10,
+          padding: 8,
+          font: { size: 11 },
+          generateLabels: function(chart) {
+            const data = chart.data;
+            const total = data.datasets[0].data.reduce((a,b) => a+b, 0);
+            return data.labels.map((label, i) => {
+              const value = data.datasets[0].data[i];
+              const pct = (value / total * 100).toFixed(0);
+              return {
+                text: `${label} ${pct}%`,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                hidden: false,
+                index: i
+              };
+            });
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(ctx) {
+            const total = ctx.dataset.data.reduce((a,b)=>a+b, 0);
+            const pct = (ctx.parsed / total * 100).toFixed(1);
+            return `${ctx.label}: ฿${ctx.parsed.toLocaleString()} (${pct}%)`;
+          }
+        }
+      }
+    },
+    cutout: '60%'
+  }
+});
+
+// Net Worth Chart
+new Chart(document.getElementById('netWorthChart'), {
+  type: 'line',
+  data: {
+    labels: DATA.netWorthHistory.map(x => x.date),
+    datasets: [{
+      label: 'Net Worth',
+      data: DATA.netWorthHistory.map(x => x.value),
+      borderColor: '#1f6feb',
+      backgroundColor: 'rgba(31, 111, 235, 0.1)',
+      fill: true, tension: 0.4, borderWidth: 2,
+      pointBackgroundColor: '#1f6feb', pointRadius: 3, pointHoverRadius: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmt.bahtShort(c.parsed.y) }}},
+    scales: {
+      y: { ticks: { callback: v => fmt.bahtShort(v) }},
+      x: { grid: { display: false }}
+    }
+  }
+});
+
+// Allocation Chart - all assets
+new Chart(document.getElementById('overviewAllocChart'), {
+  type: 'doughnut',
+  data: {
+    labels: DATA.assets.map(a => a.name),
+    datasets: [{
+      data: DATA.assets.map(a => a.amount),
+      backgroundColor: ['#1f6feb','#3b82f6','#10b981','#d97706','#06b6d4','#8b5cf6','#94a3b8','#f59e0b','#ef4444'],
+      borderColor: '#fff', borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 12, padding: 8, font: { size: 11 }}},
+      tooltip: { callbacks: { label: c => `${c.label}: ${fmt.bahtShort(c.parsed)} (${(c.parsed/totalAssets*100).toFixed(1)}%)` }}
+    },
+    cutout: '60%'
+  }
+});
+
+// (Income/Expense Charts ลบออก - ใช้ list+bar+% แทน ดูง่ายกว่า)
+
+// Salary Chart
+new Chart(document.getElementById('salaryChart'), {
+  type: 'line',
+  data: {
+    labels: DATA.salaryHistory.map(s => s.date),
+    datasets: [
+      {
+        label: 'เงินเดือน Base',
+        data: DATA.salaryHistory.map(s => s.salary),
+        borderColor: '#1f6feb',
+        backgroundColor: 'rgba(31, 111, 235, 0.1)',
+        fill: true, tension: 0.3, borderWidth: 2,
+        pointRadius: DATA.salaryHistory.map(s => s.milestone.includes('★') ? 8 : 4),
+        pointBackgroundColor: DATA.salaryHistory.map(s => s.milestone.includes('★') ? '#16a34a' : '#1f6feb'),
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
+      },
+      {
+        label: 'Net เข้าบัญชี',
+        data: DATA.salaryHistory.map(s => s.net),
+        borderColor: '#16a34a',
+        borderDash: [5,5],
+        fill: false, tension: 0.3, borderWidth: 2,
+        pointRadius: 4
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: {
+        callbacks: {
+          label: c => `${c.dataset.label}: ฿${c.parsed.y.toLocaleString()}`,
+          afterLabel: c => DATA.salaryHistory[c.dataIndex].milestone
+        }
+      }
+    },
+    scales: {
+      y: { ticks: { callback: v => fmt.bahtShort(v) }, beginAtZero: false },
+      x: { grid: { display: false }}
+    }
+  }
+});
+
+// Bonus Chart - clear distinction Actual vs Forecast
+new Chart(document.getElementById('bonusChart'), {
+  type: 'bar',
+  data: {
+    labels: DATA.bonusHistory.map(b => {
+      let label = b.year + '';
+      if (b.actual) label += ' ✓';
+      else if (b.current) label += ' ⏳';
+      else if (b.forecast) label += ' 📊';
+      return label;
+    }),
+    datasets: [{
+      label: 'โบนัส ธ.ค.',
+      data: DATA.bonusHistory.map(b => b.dec),
+      backgroundColor: DATA.bonusHistory.map(b => {
+        if (b.actual) return '#16a34a';        // เขียว = จริง
+        if (b.current) return '#d97706';        // เหลือง = ปีนี้ (คาดการณ์)
+        if (b.forecast) return '#94a3b8';       // เทา = คาดการณ์ในอนาคต
+        return '#94a3b8';
+      }),
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: c => `โบนัส: ฿${c.parsed.y.toLocaleString()}`,
+          afterTitle: c => {
+            const b = DATA.bonusHistory[c[0].dataIndex];
+            const status = b.actual ? '✓ ได้รับจริง' : (b.current ? '⏳ คาดการณ์ปีนี้' : '📊 คาดการณ์อนาคต');
+            return `${b.role}\n${status}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }},
+      y: { ticks: { callback: v => fmt.bahtShort(v) }}
+    }
+  }
+});
+
+// Loan Chart
+new Chart(document.getElementById('loanChart'), {
+  type: 'bar',
+  data: {
+    labels: DATA.loan.scenarios.map(s => s.name.split(' (')[0]),
+    datasets: [{
+      label: 'ดอกเบี้ยรวม',
+      data: DATA.loan.scenarios.map(s => s.totalInterest),
+      backgroundColor: ['#ef4444','#f97316','#16a34a','#1f6feb'],
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmt.bahtShort(c.parsed.x) }}},
+    scales: { x: { ticks: { callback: v => fmt.bahtShort(v) }}}
+  }
+});
+
+} // ← ปิด function renderDashboard()
+
+
+// ============================================================
+// LANGUAGE SWITCHER - Thai / Japanese
+// ============================================================
+let CURRENT_LANG = localStorage.getItem('dashboard_lang') || 'th';
+const ORIGINAL_TEXT = new WeakMap();
+const JA_REPLACEMENTS = [
+  ['Personal Financial Dashboard · จัดการการเงินส่วนตัว','Personal Financial Dashboard · 個人資産管理'],
+  ['ภาพรวม','概要'], ['Cash Flow','キャッシュフロー'], ['สินทรัพย์/หนี้สิน','資産・負債'], ['Career & Profile','キャリア・プロフィール'], ['เงินเดือน','給与'], ['ประกัน','保険'], ['หนี้บ้าน','住宅ローン'], ['สิ่งต้องทำ','To Do'],
+  ['UPDATED','更新日'], ['AGE','年齢'], ['NET WORTH','純資産'], ['Assets − Liabilities','資産 − 負債'], ['WEALTH BUILDING / เดือน','資産形成 / 月'], ['รวมโบนัสเฉลี่ย','平均ボーナス込み'], ['CASH เหลือใช้สด / เดือน','自由に使えるキャッシュ / 月'], ['ใช้ส่วนตัว/ฉุกเฉิน','個人利用・緊急用'], ['หนี้สินคงเหลือ','負債残高'],
+  ['Wealth Building / เดือน — เงินสะสมระยะยาว 4 ช่องทาง','資産形成 / 月 — 長期資産を作る4つのルート'], ['เงินที่ลงทุน/สะสม/ลดหนี้ ทุกเดือน','毎月の投資・積立・元本返済'], ['ไม่รวม Cash เหลือใช้สด','自由に使えるキャッシュは除外'], ['รายละเอียด Wealth Building','資産形成の内訳'], ['ออมหุ้น (Asset Growth)','株式積立（資産成長）'], ['โป๊ะหนี้บ้าน (ลดหนี้ = สร้างทุน)','住宅ローン繰上返済（負債削減＝資本形成）'], ['ออมทรัพย์ PVD ฝากเอง','PVD自己拠出'], ['ไดกิ้นสมทบ (ฟรี!)','Daikin会社拠出（福利厚生）'], ['รวม Wealth Building / เดือน (ไม่รวมโบนัส)','資産形成合計 / 月（ボーナス除く）'], ['Cash เหลือใช้สด (เก็บไว้ใช้เล่น/ฉุกเฉิน)','自由に使えるキャッシュ（娯楽・緊急用）'], ['เงินส่วนตัว · ปาร์ตี้, ตีกอล์ฟ, ของขวัญ, ฉุกเฉิน · ไม่ผูกมัด','個人用キャッシュ · 外食、ゴルフ、プレゼント、緊急費用 · 固定しないお金'], ['สัดส่วน Wealth Building','資産形成の割合'], ['ถ้าเฉลี่ยโบนัสจริง ธ.ค. มาด้วย','12月ボーナスを月平均にした場合'], ['โบนัสจริง ธ.ค. 2026 (เฉลี่ย/เดือน)','2026年12月ボーナス（月平均）'], ['Wealth Building รวมโบนัสเฉลี่ย','ボーナス込み資産形成'], ['สรุปเป็นปี','年間サマリー'], ['ไม่รวมโบนัส (Conservative)','ボーナス除く（保守的）'], ['รวมโบนัส (Realistic)','ボーナス込み（現実的）'], ['นี่คือเงินที่กำลังสะสมเป็น Wealth ของคุณทุกเดือน','これは毎月あなたの資産として積み上がっている金額です'], ['บางส่วนเป็นเงินสด · บางส่วนเป็นการลดหนี้ · บางส่วนเป็น Asset ระยะยาว','一部は現金、一部は負債削減、一部は長期資産です'],
+  ['Net Worth Growth','純資産の推移'], ['Progress to Goals','目標進捗'], ['ภาพรวม Asset Allocation','資産配分の概要'], ['รายรับรวม / เดือน','月間収入合計'], ['รายจ่ายรวม / เดือน','月間支出合計'], ['Net / เดือน','月間ネット'], ['รวม / ปี (Net)','年間ネット'], ['แหล่งรายได้','収入源'], ['หมวด','項目'], ['ก่อนรวม Bonus ปลายปี','年末ボーナス除く'], ['รายรับ','収入'], ['รายจ่าย','支出'],
+  ['Keen Condo Sriracha — การจัดสรรเงิน','Keen Condo Sriracha — 資金配分'], ['ค่าเช่าที่ได้รับเต็ม','家賃総額'], ['หักค่าใช้จ่ายและแบ่งตามข้อตกลงกับยูโกะ','費用を差し引き、Yukoとの合意に基づき配分'], ['ได้รับ → ค่าใช้จ่าย Keen','受取 → Keen費用'], ['ค่าเช่ารวม (Gross)','家賃総額（Gross）'], ['Net หลังหักค่าใช้จ่าย','費用控除後ネット'], ['การแบ่งเงิน','資金配分'], ['หุ้นส่วนยูโกะ','Yuko分'], ['ยูโกะซื้อทอง','Yukoの金積立'], ['ค่าใช้จ่าย Nirvana ร่วม','Nirvana共同費用'], ['ทบหนี้ KKP','KKPローン返済'], ['ข้อสังเกต','メモ'], ['ในมุมมองของ Champ','Champ視点では'], ['เข้าตัวจริง','実際の取り分'], ['ใช้ทบหนี้บ้าน','住宅ローン返済に充当'], ['ส่วนยูโกะ','Yuko分'], ['ได้รับ + เก็บทองรวม','受取＋金積立合計'],
+  ['สินทรัพย์รวม','資産合計'], ['หนี้สินรวม','負債合計'], ['อสังหา (Net)','不動産（ネット）'], ['หลังหักหนี้บ้าน','住宅ローン控除後'], ['สินทรัพย์','資産'], ['หนี้สิน','負債'], ['รายการ','件'], ['Debt-to-Asset','負債比率'],
+  ['Professional Summary','プロフェッショナルサマリー'], ['Career Path at Daikin','Daikinでのキャリアパス'], ['เส้นทางการเติบโต','成長の道のり'], ['Promotion Milestones','昇進マイルストーン'], ['Key Achievements & Projects','主な実績・プロジェクト'], ['Core Expertise','主な専門性'], ['What Makes Me Unique','強み'], ['Education','学歴'],
+  ['เงินเดือนปัจจุบัน','現在の基本給'], ['หลังหักทุกอย่าง','控除後'], ['โบนัสจริง ธ.ค. 2026','2026年12月ボーナス'], ['รวมรายได้ Daikin / ปี','Daikin年間収入合計'], ['การเติบโตเงินเดือน + Career Milestones','給与成長＋キャリアマイルストーン'], ['โบนัสจริงประจำปี (เฉพาะเดือนธันวาคม)','年間ボーナス（12月のみ）'], ['ได้รับแล้ว','実績'], ['คาดการณ์','予測'], ['ปี 2026 ยังไม่ได้รับ','2026年は未受領'], ['อนาคต','将来'],
+  ['รายละเอียดกรมธรรม์','保険契約の詳細'], ['เบี้ยรวม / ปี (Active)','年間保険料（有効）'], ['คุ้มครองชีวิตรวม','死亡保障合計'], ['โรคร้ายรวม','重大疾病保障合計'], ['เหมาจ่ายค่ารักษา','医療保障合計'], ['การคุ้มครอง vs ความต้องการ','保障額 vs 必要額'], ['Coverage Gap','保障ギャップ'], ['ค่ารักษาพยาบาลครอบคลุมดี','医療保障は十分'],
+  ['เงินต้นคงเหลือ','元本残高'], ['จ่ายไปแล้ว','返済済み'], ['ผ่อน / เดือน','月返済額'], ['ผ่อนแล้ว','返済期間'], ['ข้อมูลสินเชื่อ KKP','KKPローン情報'], ['อัตราดอกเบี้ย','金利'], ['แผนรีไฟแนนซ์','借り換え計画'], ['เปรียบเทียบ Scenarios','シナリオ比較'], ['กราฟเปรียบเทียบดอกเบี้ยรวม','総利息比較グラフ'],
+  ['Action Items (เรียงลำดับความสำคัญ)','アクション項目（優先順）'], ['Timeline ที่แนะนำ','推奨タイムライン'], ['เป้าหมาย','目標'], ['สถานะ','ステータス'],
+  // Retirement page translations
+  ['เกษียณ','退職'], ['แผนเกษียณ','退職プラン'], ['อีก 27 ปี','あと27年'], ['ภาพรวมเงินที่คาดว่าจะได้รับเมื่อเกษียณ','退職時に受け取る予定の資金概要'], ['รวมประกัน 6 ฉบับ + PVD + ลงทุน','保険6契約 + PVD + 投資の合計'],
+  ['ประกัน 6 ฉบับ (ครบสัญญา)','保険6契約（満期）'], ['เงินคืนตามตาราง + บำนาญ','満期返戻金 + 年金'], ['PVD TISCO (คาดการณ์)','PVD TISCO（予測）'], ['โต ~5%/ปี · อายุ 60','年5%成長 · 60歳時'], ['รวมเงินเกษียณคาดการณ์','退職資金合計（予測）'], ['+ บ้าน + ลงทุนอื่น','+ 不動産 + その他投資'],
+  ['ตัวเลขเป็น','数字は'], ['คาดการณ์ขั้นต่ำ','最低限の予測'], ['ยังไม่นับ','含まれない項目'], ['โบนัส 27 ปี','27年間のボーナス'], ['ถ้า save ลงทุน','投資した場合'], ['มูลค่าบ้านที่เพิ่มขึ้น','住宅価値の上昇'], ['เงินเดือนเพิ่ม','給与アップ'], ['ลงทุนเพิ่มเติม','追加投資'], ['มรดกพ่อแม่ของยูโกะ','Yukoの両親からの相続'], ['ถ้ามี','があれば'],
+  ['ประกัน 6 ฉบับ — เงินคืน & ครบสัญญา','保険6契約 — 返戻金 & 満期'], ['ข้อมูลจาก Sheet','データソース'], ['ส่งครบแล้ว','支払完了'], ['กำลังส่ง','支払中'], ['กรมธรรม์','契約'], ['เลขสัญญา','契約番号'], ['ทุนประกัน','保険金'], ['เบี้ย/ปี','年間保険料'], ['ส่งแล้ว','支払済'], ['ครบส่ง (อายุ Champ)','支払完了（Champ年齢）'], ['ครบสัญญา (เงินได้คืน)','満期（返戻金）'], ['ใกล้ครบ','もうすぐ満期'], ['เพิ่งเริ่ม','開始したばかり'], ['ตลอดชีพ','終身'], ['ทุน','保険金'],
+  ['Timeline เงินเข้า — ตามอายุ','収入タイムライン — 年齢別'], ['แต่ละจุด = ปีที่กรมธรรม์ครบสัญญา หรือ เริ่มได้บำนาญ','各点 = 保険満期または年金開始の年'], ['อายุ Champ (ปี)','Champ年齢（年）'], ['เงินเข้า / เหตุการณ์','入金 / イベント'], ['เป้าหมายเกษียณ','退職目標'], ['บำนาญเริ่มจ่าย','年金支給開始'],
+  ['เบี้ยที่จ่ายไปทั้งหมด vs เงินที่ได้คืน','支払保険料合計 vs 受取返戻金'], ['เบี้ยที่จ่าย (ตลอดอายุสัญญา)','支払保険料（契約期間中）'], ['เงินคืน + เงินทุน + บำนาญ','返戻金 + 保険金 + 年金'], ['รวมเบี้ยที่จ่าย','支払保険料合計'], ['รวมเงินที่จะได้','受取金額合計'], ['ผลตอบแทนสุทธิ','正味リターン'], ['เป็นเวลา','期間'],
+  ['คาดการณ์เงินเกษียณ ณ อายุ 60 (สถานการณ์)','60歳時の退職資金予測（シナリオ）'], ['สมมติ PVD โตเฉลี่ย','PVD平均成長率'], ['ค่าเริ่มต้น','初期値'], ['เพิ่มเดือนละ','毎月の積立'], ['ตัวคุณ + บริษัท','本人 + 会社拠出'], ['สถานการณ์','シナリオ'], ['PVD ผลตอบแทน','PVDリターン'], ['PVD ตอนอายุ 60','60歳時PVD'], ['+ ประกัน','+ 保険'], ['Pessimistic','悲観的'], ['Base case','基本ケース'], ['Optimistic','楽観的'],
+  ['ปัจจุบัน','現在'], ['อายุ 33','33歳'], ['เกษียณอีก','退職まで'], ['ปี (2052)','年 (2052)'], ['เงินคืน + ทุนชีวิต + บำนาญ','返戻金 + 死亡保険金 + 年金'], ['เริ่ม ฿805K + เพิ่ม ฿16K/เดือน','開始残高 ฿805K + 月額拠出 ฿16K'], ['รวมเงินเกษียณ (Base case)','退職資金合計（基本ケース）'], ['ยังไม่นับโบนัส + บ้าน','ボーナス・不動産除く'],
+  ['เงินเดือน Daikin (Net หลังหัก)','Daikin給与（控除後ネット）'], ['Keen Condo - ส่วนของ Champ','Keen Condo - Champ分'], ['รายได้แผงค้าร้านกาแฟ','コーヒー店ブース収入'], ['ค่าเช่าที่ดินนครชัยศรี','Nakhon Chai Si土地賃料'], ['ผลตอบแทนพอร์ต (เฉลี่ย)','ポートフォリオ収益（平均）'], ['ผ่อนบ้าน Nirvana KKP (ขั้นต่ำ)','Nirvana KKP住宅ローン（最低）'], ['โป๊ะเงินต้นบ้าน (Champ Get จาก Keen)','住宅ローン繰上返済（KeenのChamp分）'], ['ออม + ลงทุน (หุ้น)','貯蓄＋投資（株式）'], ['เบี้ยประกัน (รวม 7 ฉบับ)','保険料（7契約合計）'], ['อื่นๆ (เรียน + บริจาค + ดูแลตัว)','その他（学習・寄付・自己投資）'],
+  ['บ้าน Nirvana Element Bangna','Nirvana Element Bangna住宅'], ['ทองคำ','金'], ['เงินสด (รวม)','現金合計'], ['กองทุนรวม','投資信託'], ['รถ Mazda 2 Skyactiv','Mazda 2 Skyactiv'], ['มูลค่าประกันออมทรัพย์','貯蓄型保険の解約返戻金'], ['หุ้นไทย','タイ株'], ['สินเชื่อบ้าน KKP','KKP住宅ローン'],
+  ['เดือน','月'], ['ปี','年'], ['บาท','バーツ'], ['รวม','合計'], ['ปัจจุบัน','現在'], ['ด่วน','緊急'], ['สำคัญ','重要'], ['วางแผน','計画中'], ['แนะนำ','推奨']
+];
+function translateString(text, lang) {
+  if (lang === 'th') return text;
+  let out = text;
+  JA_REPLACEMENTS.slice().sort((a,b) => b[0].length - a[0].length).forEach(([th, ja]) => { out = out.split(th).join(ja); });
+  return out;
+}
+function walkTextNodes(root, fn) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      const parent = node.parentElement;
+      if (!parent || ['SCRIPT','STYLE','TEXTAREA','CODE'].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(fn);
+}
+function setLanguage(lang) {
+  CURRENT_LANG = lang;
+  localStorage.setItem('dashboard_lang', lang);
+  document.documentElement.lang = lang === 'ja' ? 'ja' : 'th';
+  document.getElementById('langTh')?.classList.toggle('active', lang === 'th');
+  document.getElementById('langJa')?.classList.toggle('active', lang === 'ja');
+  walkTextNodes(document.body, node => {
+    if (!ORIGINAL_TEXT.has(node)) ORIGINAL_TEXT.set(node, node.nodeValue);
+    node.nodeValue = translateString(ORIGINAL_TEXT.get(node), lang);
+  });
+}
+function initLanguageSwitcher() { setLanguage(CURRENT_LANG); }
+
+// ============================================================
+// 🎬 TAB SWITCHER (อยู่นอก renderDashboard เพื่อให้ใช้งานได้ทุกที่)
+// ============================================================
+function showTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.closest('.tab').classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+  setLanguage(CURRENT_LANG);
+}
+</script>
+</body>
+</html>
