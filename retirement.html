@@ -1,0 +1,208 @@
+  <!-- ==========  TAB 7: RETIREMENT (NEW)  ========== -->
+  <div class="panel" id="retirement">
+    <!-- Top KPIs -->
+    <div class="kpi-grid" id="retirementKpis"></div>
+
+    <!-- ==========  Retirement Cashflow (NEW)  ========== -->
+    <div class="card" style="background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 50%, #fff 100%); border-left: 4px solid var(--primary);">
+      <h2>💰 Retirement Cashflow — กระแสเงินเข้ารายเดือน (อายุ 60-85)</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 16px;">
+        คำนวณเงินเข้าจริงจากทั้ง 4 แหล่ง: <strong>ประกันก่อน 60 (drawdown)</strong> + <strong>PVD (drawdown)</strong> + <strong>Lump 630K @ 66</strong> + <strong>บำนาญ 120K/ปี</strong>
+      </p>
+
+      <!-- KPI Summary -->
+      <div class="kpi-grid" id="cashflowRetireKpis" style="margin-bottom: 20px;"></div>
+
+      <!-- Input Controls -->
+      <div style="background: #fff; padding: 16px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
+        <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">⚙️ ปรับสมมติฐาน — ตารางจะอัพเดต Real-time</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <!-- PVD Now -->
+          <div>
+            <label style="font-size: 11px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.05em;">PVD ปัจจุบัน (฿)</label>
+            <input type="number" id="cfPvdNow" min="0" max="10000000" step="10000"
+                   style="width: 100%; padding: 8px 10px; margin-top: 4px; border: 1px solid var(--border); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+            <div style="font-size: 10px; color: var(--text-mute); margin-top: 2px;">Auto-sync จาก asset_pvd_tisco</div>
+          </div>
+          <!-- PVD Monthly Contrib -->
+          <div>
+            <label style="font-size: 11px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.05em;">PVD เพิ่ม/เดือน (฿)</label>
+            <input type="number" id="cfPvdContrib" min="0" max="100000" step="500"
+                   style="width: 100%; padding: 8px 10px; margin-top: 4px; border: 1px solid var(--border); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+            <div style="font-size: 10px; color: var(--text-mute); margin-top: 2px;">salary_deduct_pvd + pvd_company_match</div>
+          </div>
+          <!-- Growth Rate Slider -->
+          <div>
+            <label style="font-size: 11px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.05em;">
+              Growth Rate: <span id="cfGrowthLabel" style="color: var(--primary); font-weight: 600;">1%</span>
+            </label>
+            <input type="range" id="cfGrowthSlider" min="1" max="7" step="0.5" value="1"
+                   style="width: 100%; margin-top: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-mute);">
+              <span>1% (Worst)</span>
+              <span>4% (Base)</span>
+              <span>7% (Best)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PVD Calculation Result -->
+        <div class="info-box" style="background: var(--bg-green); border-left: 4px solid var(--green); margin-top: 16px; margin-bottom: 0;">
+          <div class="key">💡 PVD ที่อายุ 60 (จากสมมติฐานด้านบน)</div>
+          <div class="val" style="color: var(--green); font-size: 18px;" id="cfPvdAt60">—</div>
+          <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">
+            Drawdown 26 ปี (60→85) = <strong id="cfPvdYearly">—</strong>/ปี · <strong id="cfPvdMonthly">—</strong>/เดือน
+          </div>
+        </div>
+      </div>
+
+      <!-- Cashflow Year-by-Year Table -->
+      <div style="overflow-x: auto;">
+        <table id="cashflowTable" style="font-size: 12px;">
+          <thead>
+            <tr>
+              <th>อายุ</th>
+              <th>ปี</th>
+              <th class="num">Insurance pre-60<br><span style="font-weight: 400; color: var(--text-mute); font-size: 10px;">(฿1.67M ÷ 26 ปี)</span></th>
+              <th class="num">PVD<br><span style="font-weight: 400; color: var(--text-mute); font-size: 10px;">(drawdown)</span></th>
+              <th class="num">Lump 630K<br><span style="font-weight: 400; color: var(--text-mute); font-size: 10px;">(เริ่ม @66, 20 ปี)</span></th>
+              <th class="num">Pension<br><span style="font-weight: 400; color: var(--text-mute); font-size: 10px;">(บำนาญตลอด)</span></th>
+              <th class="num"><strong>รวม/ปี</strong></th>
+              <th class="num"><strong>รวม/เดือน</strong></th>
+            </tr>
+          </thead>
+          <tbody id="cashflowTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Source Breakdown Pie -->
+      <div class="grid-2" style="margin-top: 20px;">
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px;">📊 สัดส่วนแหล่งรายได้ (อายุ 66-85)</h3>
+          <div class="chart-box" style="height: 240px;"><canvas id="cashflowPieChart"></canvas></div>
+        </div>
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px;">📈 รายเดือนตลอดเกษียณ</h3>
+          <div class="chart-box" style="height: 240px;"><canvas id="cashflowLineChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Disclaimers -->
+      <div class="alert" style="background: var(--bg-amber); border-left: 4px solid var(--amber); margin-top: 16px;">
+        <div class="alert-title">⚠️ ข้อจำกัดของตัวเลขนี้</div>
+        <div class="alert-body" style="font-size: 12px;">
+          • <strong>Nominal value</strong> — ไม่ปรับ inflation 3%/ปี (สอดคล้องกับ logic ประกันเดิม)<br>
+          • <strong>Growth 1% = worst case</strong> — PVD ไทยจริงๆ น่าจะได้ 3-5% (ลองเลื่อน slider ดู)<br>
+          • <strong>ยังไม่หัก tax PVD</strong> — ตอนถอนอาจหัก 5-15% ตาม progressive rate<br>
+          • <strong>Drawdown แบบเฉลี่ย</strong> — สมมติแบ่งเท่าๆ กัน 26 ปี · จริงสามารถเลือกถอนเป็น lump ก็ได้
+        </div>
+      </div>
+    </div>
+
+    <!-- Insurance Detail Table -->
+    <div class="card">
+      <h2>📋 ประกัน 6 ฉบับ — เงินคืน & ครบสัญญา</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        ข้อมูลจาก Sheet "3. ประกัน รายละเอียด" · ✓ = ส่งครบแล้ว · ⏳ = กำลังส่ง
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>กรมธรรม์</th>
+            <th>เลขสัญญา</th>
+            <th class="num">ทุนประกัน</th>
+            <th class="num">เบี้ย/ปี</th>
+            <th class="num">ส่งแล้ว</th>
+            <th class="num">ครบส่ง (อายุ Champ)</th>
+            <th class="num">ครบสัญญา (เงินได้คืน)</th>
+          </tr>
+        </thead>
+        <tbody id="insurancePolicyTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Timeline Chart -->
+    <div class="card">
+      <h2>📊 Timeline เงินเข้า — ตามอายุ</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        แต่ละจุด = ปีที่กรมธรรม์ครบสัญญา หรือ เริ่มได้บำนาญ
+      </p>
+      <div class="chart-box tall"><canvas id="retirementTimelineChart"></canvas></div>
+    </div>
+
+    <!-- Premium Cost vs Benefit -->
+    <div class="card">
+      <h2>💰 เบี้ยที่จ่ายไปทั้งหมด vs เงินที่ได้คืน</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        แสดงรายฉบับจาก Dashboard_Data · เบี้ยและเงินคืนดึงจาก Sheet จริง
+      </p>
+      <div class="kpi-grid" id="insuranceBenefitSummaryCards" style="margin-bottom: 16px;"></div>
+      <div id="premiumList"></div>
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">📊 ผลตอบแทนสุทธิ</div>
+        <div class="alert-body" id="netReturnSummary">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📅 ตารางเวลาเงินเข้า — เหมือน Sheet ประกัน</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        ดึงจาก Sheet "3. ประกัน รายละเอียด" โดยตรง · แสดงเฉพาะปีที่มีเงินเข้า/เหตุการณ์สำคัญ
+      </p>
+      <div style="overflow-x:auto; max-height: 560px; border: 1px solid var(--border); border-radius: 8px;">
+        <table>
+          <thead style="position: sticky; top: 0; z-index: 1;">
+            <tr>
+              <th class="num">ปี</th><th class="num">อายุ</th><th class="num">#1</th><th class="num">#2</th><th class="num">#3</th><th class="num">#4</th><th class="num">#5</th><th class="num">#6</th><th class="num">รวมรับปีนั้น</th><th>หมายเหตุ</th>
+            </tr>
+          </thead>
+          <tbody id="insuranceTimelineTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Retirement Projections -->
+    <div class="card" style="background: linear-gradient(to right, #f0f9ff, #fff);">
+      <h2>🎯 คาดการณ์เงินเกษียณ ณ อายุ 60 (สถานการณ์)</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        สมมติ PVD โตเฉลี่ย X%/ปี · ค่าเริ่มต้น ฿805,630 · เพิ่มเดือนละ ฿16,570 (ตัวคุณ + บริษัท)
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>สถานการณ์</th>
+            <th class="num">PVD ผลตอบแทน</th>
+            <th class="num">PVD ตอนอายุ 60</th>
+            <th class="num">+ ประกัน</th>
+            <th class="num">รวม</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🚨 Pessimistic (3%/ปี)</td>
+            <td class="num">3.0%</td>
+            <td class="num" id="pvdProj3">—</td>
+            <td class="num">฿1,200,000</td>
+            <td class="num"><strong id="totalProj3">—</strong></td>
+          </tr>
+          <tr style="background: var(--bg-green);">
+            <td>✅ Base case (5%/ปี)</td>
+            <td class="num">5.0%</td>
+            <td class="num" id="pvdProj5">—</td>
+            <td class="num">฿1,200,000</td>
+            <td class="num"><strong id="totalProj5">—</strong></td>
+          </tr>
+          <tr>
+            <td>🎯 Optimistic (7%/ปี)</td>
+            <td class="num">7.0%</td>
+            <td class="num" id="pvdProj7">—</td>
+            <td class="num">฿1,200,000</td>
+            <td class="num"><strong id="totalProj7">—</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+

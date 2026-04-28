@@ -1,0 +1,72 @@
+  <!-- ==========  TAB 6: LOAN  ========== -->
+  <div class="panel" id="loan">
+    <div class="kpi-grid" id="loanKpis"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>📋 ข้อมูลสินเชื่อ KKP</h2>
+        <div class="info-box">
+          <div class="key">ธนาคาร</div>
+          <div class="val" id="loanBank">—</div>
+        </div>
+        <div class="info-box">
+          <div class="key">วงเงินกู้เริ่มต้น</div>
+          <div class="val" id="loanOriginal">—</div>
+        </div>
+        <div class="info-box" style="background: var(--bg-red); border-color: var(--red);">
+          <div class="key">เงินต้นคงเหลือ (Apr 2026)</div>
+          <div class="val" style="color: var(--red);" id="loanCurrent">—</div>
+        </div>
+        <div class="info-box">
+          <div class="key">วันเริ่มสัญญา · ระยะ</div>
+          <div class="val" id="loanStart">—</div>
+        </div>
+        <div class="info-box">
+          <div class="key">ผ่อนรวมต่อเดือน (ปัจจุบัน)</div>
+          <div class="val" id="loanMonthly">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📊 อัตราดอกเบี้ย</h2>
+        <table>
+          <thead>
+            <tr><th>ช่วงเวลา</th><th>อัตรา</th></tr>
+          </thead>
+          <tbody id="ratesTable"></tbody>
+        </table>
+
+        <div style="margin-top: 16px;">
+          <div class="alert success">
+            <div class="alert-title">🎯 แผนรีไฟแนนซ์</div>
+            <div class="alert-body" id="refinanceNote">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔮 เปรียบเทียบ Scenarios</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
+        จำลองจากเงินต้นคงเหลือปัจจุบัน ฿5.59M
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>กลยุทธ์</th>
+            <th class="num">ผ่อน/เดือน</th>
+            <th class="num">ระยะเวลา</th>
+            <th class="num">ดอกเบี้ยรวม</th>
+            <th class="num">ประหยัด vs ขั้นต่ำ</th>
+          </tr>
+        </thead>
+        <tbody id="scenariosTable"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>📈 กราฟเปรียบเทียบดอกเบี้ยรวม</h2>
+      <div class="chart-box"><canvas id="loanChart"></canvas></div>
+    </div>
+  </div>
+

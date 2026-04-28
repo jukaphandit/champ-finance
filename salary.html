@@ -1,0 +1,205 @@
+  <!-- ==========  TAB 5: SALARY  ========== -->
+  <div class="panel" id="salary">
+    <div class="kpi-grid" id="salaryKpis"></div>
+
+    <div class="card">
+      <h2>📈 การเติบโตเงินเดือน + Career Milestones (2015 - ปัจจุบัน)</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 16px;">
+        Engineer → SE (2018) → SU (2023) → ★ AM (2026) · เติบโต 248% ใน 11 ปี
+      </p>
+      <div class="chart-box tall"><canvas id="salaryChart"></canvas></div>
+    </div>
+
+    <!-- Annual Bonus History -->
+    <div class="card">
+      <h2>🎁 โบนัสจริงประจำปี (เฉพาะเดือนธันวาคม)</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 16px;">
+        <span class="badge green">✓ จริง</span> ได้รับแล้ว ·
+        <span class="badge amber">⏳ คาดการณ์</span> ปี 2026 ยังไม่ได้รับ ·
+        <span class="badge gray">📊 คาดการณ์</span> อนาคต
+        <br>⚠️ "Bonus ฿14,000" รายเดือนในตาราง = เงินช่วยค่าบ้าน (ไม่ใช่โบนัส) · โบนัสจริงๆ ออก ธ.ค. รอบเดียว
+      </p>
+      <div class="chart-box tall"><canvas id="bonusChart"></canvas></div>
+
+      <table style="margin-top: 16px;">
+        <thead>
+          <tr>
+            <th>ปี</th>
+            <th>ตำแหน่ง / Status</th>
+            <th class="num">โบนัส ธ.ค.</th>
+            <th class="num">% เงินเดือน</th>
+          </tr>
+        </thead>
+        <tbody id="bonusTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Daikin Benefits - moved here -->
+    <div class="card" style="background: linear-gradient(to right, #fefce8, #fff); border-left: 4px solid var(--amber);">
+      <h2>💰 Daikin Benefits — สวัสดิการที่กำลังสะสม</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 16px;">
+        เป็น "ทรัพย์สินซ่อน" ที่หลายคนลืมนึก · รวมแล้วเป็นเงินก้อนใหญ่ที่จะได้ตอนเกษียณ
+      </p>
+
+      <div class="grid-2">
+        <!-- ออมทรัพย์ (PVD ฝากเอง) -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px;">💵 ออมทรัพย์ (PVD - ฝากเอง 15%)</h3>
+          <div class="info-box">
+            <div class="key">หักจากเงินเดือน / เดือน</div>
+            <div class="val" id="pvdSelfMonthly">—</div>
+          </div>
+          <div class="info-box">
+            <div class="key">% ของเงินเดือน</div>
+            <div class="val" id="pvdSelfPct">—</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">ฝากเข้า PVD ปีนี้</div>
+            <div class="val" style="color: var(--amber); font-size: 18px;" id="pvdSelfBalance">—</div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-mute); margin-top: 8px;" id="pvdSelfNote">—</p>
+        </div>
+
+        <!-- Daikin Provident Fund (บริษัทสมทบ) -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px;">🏦 Daikin PVD (บริษัทสมทบ)</h3>
+          <div class="info-box">
+            <div class="key">บริษัทสมทบ / เดือน</div>
+            <div class="val" style="color: var(--green);" id="pvdCompanyMonthly">—</div>
+          </div>
+          <div class="info-box">
+            <div class="key">% ของเงินเดือน</div>
+            <div class="val" id="pvdCompanyPct">—</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green);">
+            <div class="key">บริษัทใส่ปีนี้</div>
+            <div class="val" style="color: var(--green); font-size: 18px;" id="pvdCompanyBalance">—</div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-mute); margin-top: 8px;" id="pvdCompanyNote">—</p>
+        </div>
+      </div>
+
+      <!-- Group Insurance -->
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+        <h3 style="font-size: 14px; margin-bottom: 12px;">🛡️ ประกันกลุ่ม Daikin</h3>
+        <div class="grid-2">
+          <div class="info-box">
+            <div class="key">OPD (ผู้ป่วยนอก / ปี)</div>
+            <div class="val" id="groupOpd">—</div>
+          </div>
+          <div class="info-box">
+            <div class="key">IPD + ประกันชีวิตกลุ่ม</div>
+            <div class="val" style="font-size: 13px; color: var(--text-mute);" id="groupOther">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">💡 มูลค่ารวมที่กำลังสะสม</div>
+        <div class="alert-body" id="totalBenefits">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📋 Timeline เงินเดือน + ตำแหน่ง</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th class="num">เงินเดือน Base</th>
+            <th class="num">Net เข้าบัญชี</th>
+            <th>เหตุการณ์</th>
+          </tr>
+        </thead>
+        <tbody id="salaryTable"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>💼 ส่วนประกอบเงินเดือนล่าสุด (Apr 2026 - หลังเป็น AM)</h2>
+      <div class="alert success" style="margin-bottom: 16px;">
+        <div class="alert-title">📌 เปลี่ยนแปลงสำคัญหลังเป็น AM</div>
+        <div class="alert-body">
+          ❌ <strong>ไม่ได้ OT แล้ว</strong> (AM ไม่มี OT ตามนโยบายบริษัท)
+          <br>✅ <strong>ได้ค่ารถเดินทาง ฿9,300/เดือนแทน</strong>
+          <br>📝 ส่วน <strong>"Bonus" ฿14,000 ในตาราง 1.Saraly</strong> = <strong>เงินช่วยค่าบ้าน</strong> (ไม่ใช่โบนัสจริง)
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Left: Income components -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">💰 รายรับ (Gross)</h3>
+          <div class="info-box">
+            <div class="key">เงินเดือน BASE</div>
+            <div class="val">฿65,580</div>
+          </div>
+          <div class="info-box">
+            <div class="key">+ เบี้ยอายุงาน</div>
+            <div class="val">฿700</div>
+          </div>
+          <div class="info-box">
+            <div class="key">+ เบี้ยขยัน (ถ้าทำงานเต็ม)</div>
+            <div class="val">฿1,500</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">+ เงินช่วยค่าบ้าน (พิเศษ)</div>
+            <div class="val" style="color: var(--amber);">฿14,000</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">+ ค่ารถเดินทาง (แทน OT)</div>
+            <div class="val" style="color: var(--amber);">฿9,300</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); border-width: 2px;">
+            <div class="key">= GROSS</div>
+            <div class="val" style="color: var(--green); font-size: 16px;">฿91,080</div>
+          </div>
+        </div>
+
+        <!-- Right: Deductions + Net + Company addon -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">💸 หักจากเงินเดือนคุณ</h3>
+          <div class="info-box">
+            <div class="key">- ประกันสังคม</div>
+            <div class="val">-฿875</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- ออมทรัพย์ (ฝากเอง 15%)</div>
+            <div class="val">-฿9,942</div>
+          </div>
+          <div class="info-box">
+            <div class="key">- หักภาษี (ประมาณ)</div>
+            <div class="val">-฿4,385</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); border-width: 2px;">
+            <div class="key">= NET เข้าบัญชี</div>
+            <div class="val" style="color: var(--green); font-size: 18px;">฿75,878</div>
+          </div>
+
+          <h3 style="font-size: 14px; margin: 20px 0 12px; color: var(--text-soft);">🎁 บริษัทใส่เพิ่มให้ฟรี (ไม่หักจากคุณ)</h3>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green);">
+            <div class="key">+ Daikin PVD สมทบ (ไปอยู่ในกองทุน)</div>
+            <div class="val" style="color: var(--green);">+฿6,628 / เดือน</div>
+          </div>
+
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber); margin-top: 12px;">
+            <div class="key">⭐ โบนัสจริงๆ ออก ธ.ค. 2026</div>
+            <div class="val" style="color: var(--amber);">~฿417,680</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Box -->
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">💡 สรุป Total Wealth ต่อเดือนจาก Daikin</div>
+        <div class="alert-body">
+          เงินเข้าบัญชีคุณ <strong>฿75,878</strong> +
+          ออมทรัพย์ฝากเอง <strong>฿9,942</strong> (ของคุณแม้ไม่ได้เข้ามือ) +
+          ไดกิ้นสมทบฟรี <strong>฿6,628</strong> =
+          <strong style="color: var(--green); font-size: 16px;">฿92,448 / เดือน</strong>
+          <br><span style="font-size: 12px;">📌 สิ่งที่ Sheet หักออก ฿9,942 (ออมทรัพย์) ก็เป็นเงินเรา · บริษัทใส่เพิ่ม ฿6,628 = ของฟรี</span>
+        </div>
+      </div>
+    </div>
+  </div>
+

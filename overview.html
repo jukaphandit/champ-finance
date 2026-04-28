@@ -1,0 +1,98 @@
+  <!-- ==========  TAB 1: OVERVIEW  ========== -->
+  <div class="panel active" id="overview">
+    <div class="kpi-grid" id="overviewKpis"></div>
+
+    <!-- Wealth Building Section -->
+    <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 50%, #fff 100%); border-left: 4px solid var(--green);">
+      <h2>💎 Wealth Building / เดือน — เงินสะสมระยะยาว 4 ช่องทาง</h2>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 20px;">
+        เงินที่ลงทุน/สะสม/ลดหนี้ ทุกเดือน · <strong>ไม่รวม Cash เหลือใช้สด</strong> (ที่เก็บไว้ใช้ส่วนตัว/ฉุกเฉิน)
+      </p>
+
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <!-- Left: Components breakdown -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">📋 รายละเอียด Wealth Building</h3>
+
+          <div class="info-box" style="border-left: 4px solid #1f6feb;">
+            <div class="key">📈 ออมหุ้น (Asset Growth)</div>
+            <div class="val" style="color: var(--primary);" id="wbStock">—</div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #d97706;">
+            <div class="key">🏡 โป๊ะหนี้บ้าน (ลดหนี้ = สร้างทุน)</div>
+            <div class="val" style="color: var(--amber);" id="wbDebt">—</div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #8b5cf6;">
+            <div class="key">🏦 ออมทรัพย์ PVD ฝากเอง</div>
+            <div class="val" style="color: #8b5cf6;" id="wbPvdSelf">—</div>
+          </div>
+
+          <div class="info-box" style="border-left: 4px solid #06b6d4; background: #ecfeff;">
+            <div class="key">🎁 ไดกิ้นสมทบ (ฟรี!)</div>
+            <div class="val" style="color: #06b6d4;" id="wbPvdCompany">—</div>
+          </div>
+
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); border-width: 2px; margin-top: 12px;">
+            <div class="key" style="color: var(--green);">💎 รวม Wealth Building / เดือน (ไม่รวมโบนัส)</div>
+            <div class="val" style="color: var(--green); font-size: 20px;" id="wbTotal">—</div>
+          </div>
+
+          <!-- Cash Flow ที่แยกออกมา -->
+          <div class="info-box" style="background: #fffbeb; border: 2px dashed var(--amber); margin-top: 20px;">
+            <div class="key" style="color: var(--amber);">💵 Cash เหลือใช้สด (เก็บไว้ใช้เล่น/ฉุกเฉิน)</div>
+            <div class="val" style="color: var(--amber); font-size: 16px;" id="wbCashFlow">—</div>
+            <div style="font-size: 11px; color: var(--text-mute); margin-top: 4px;">
+              เงินส่วนตัว · ปาร์ตี้, ตีกอล์ฟ, ของขวัญ, ฉุกเฉิน · ไม่ผูกมัด
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Donut chart -->
+        <div>
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">🎯 สัดส่วน Wealth Building</h3>
+          <div class="chart-box" style="height: 280px;"><canvas id="wealthChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Bonus Section -->
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+        <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-soft);">⭐ ถ้าเฉลี่ยโบนัสจริง ธ.ค. มาด้วย</h3>
+        <div class="grid-2">
+          <div class="info-box" style="background: var(--bg-amber); border-color: var(--amber);">
+            <div class="key">โบนัสจริง ธ.ค. 2026 (เฉลี่ย/เดือน)</div>
+            <div class="val" style="color: var(--amber);" id="wbBonusMonthly">—</div>
+          </div>
+          <div class="info-box" style="background: var(--bg-green); border-color: var(--green); border-width: 2px;">
+            <div class="key">💎 Wealth Building รวมโบนัสเฉลี่ย</div>
+            <div class="val" style="color: var(--green); font-size: 18px;" id="wbTotalWithBonus">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Annual Summary -->
+      <div class="alert success" style="margin-top: 16px;">
+        <div class="alert-title">📊 สรุปเป็นปี</div>
+        <div class="alert-body" id="wealthAnnualSummary">—</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>📈 Net Worth Growth</h2>
+        <div class="chart-box"><canvas id="netWorthChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>🎯 Progress to Goals</h2>
+        <div id="goalsList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📌 ภาพรวม Asset Allocation</h2>
+      <div class="chart-box tall"><canvas id="overviewAllocChart"></canvas></div>
+    </div>
+  </div>
+
