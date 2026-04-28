@@ -1818,12 +1818,9 @@ const sum = arr => arr.reduce((a,b) => {
     if (bonus2026) bonus2026.dec = getVal('bonus_dec_2026', bonus2026.dec);
 
     // แสดง indicator ว่าโหลดจาก Sheet สำเร็จ
-    const liquidForFire = getVal('asset_cash', 674008)
-                        + getVal('asset_gold', 1110672)
-                        + getVal('asset_stocks', 227847)
-                        + getVal('asset_funds_only', 336565)
-                        + getVal('asset_crypto', 54876)
+    const liquidForFire = getVal('asset_liquid_total', 3209599)
                         + getVal('asset_pvd_tisco', 805630);
+    
     const fireGoal = DATA.goals.find(g => g.name.includes('FIRE Portfolio'));
     if (fireGoal) fireGoal.current = liquidForFire;
     
