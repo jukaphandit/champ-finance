@@ -1,2 +1,2 @@
 # champ-finance
-Personal Finance Dashboard.
+Personal Finance Dashboard
