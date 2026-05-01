@@ -115,10 +115,10 @@ document.getElementById('tabNav').addEventListener('click', e => {
 // 🚀 INIT — โหลด overview ก่อน แล้ว init dashboard
 // ============================================================
 (async function bootstrap() {
-  await loadTab('overview');
+  // โหลดทุก tab ก่อนเลย
+  await Promise.all(TABS.map(t => loadTab(t)));
   showTab('overview');
 
-  // รอ DOM render ก่อน
   await new Promise(r => setTimeout(r, 100));
 
   if (typeof initDashboard === 'function') {
