@@ -1,0 +1,175 @@
+  <!-- ==========  TAB: CONTINGENCY PLAN  ========== -->
+  <div class="panel" id="contingency">
+
+    <!-- Sub-tab nav -->
+    <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+      <button onclick="showContingencyTab('will')" id="ctab-will"
+        style="padding: 10px 20px; border-radius: 8px; border: 2px solid var(--green); background: var(--bg-green); color: var(--green); font-weight: 600; cursor: pointer; font-family: inherit; font-size: 13px;">
+        📜 พินัยกรรม
+      </button>
+      <button onclick="showContingencyTab('breakup')" id="ctab-breakup"
+        style="padding: 10px 20px; border-radius: 8px; border: 2px solid var(--border); background: var(--bg); color: var(--text-soft); font-weight: 600; cursor: pointer; font-family: inherit; font-size: 13px;">
+        💔 เลิกกัน
+      </button>
+    </div>
+
+    <!-- SUB-TAB: พินัยกรรม -->
+    <div id="contingency-will">
+      <div class="card" style="border-left: 4px solid var(--green); margin-bottom: 16px;">
+        <h2>📜 พินัยกรรม — กรณี Champ เสียชีวิต</h2>
+        <p style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">
+          มูลค่า mark-to-market อัพเดทอัตโนมัติจาก Google Sheet · Last updated: <span id="willUpdated">—</span>
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <!-- Yuko -->
+        <div class="card">
+          <h2>🇯🇵 Yuko Nakashita</h2>
+          <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 16px;">แฟน · ญี่ปุ่น · Daikin Japan</p>
+
+          <div class="item-list" id="willYukoList"></div>
+
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--border-strong);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 600; color: var(--text);">รวมที่ Yuko ได้รับ</span>
+              <span style="font-weight: 700; font-size: 18px; color: var(--green);" id="willYukoTotal">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- น้องสาว -->
+        <div class="card">
+          <h2>👩 จินฑารัตน์ เภาประเสริฐ</h2>
+          <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 16px;">น้องสาว · ผู้จัดการมรดก</p>
+
+          <div class="item-list" id="willSisterList"></div>
+
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--border-strong);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 600; color: var(--text);">รวมที่น้องสาวได้รับ</span>
+              <span style="font-weight: 700; font-size: 18px; color: var(--primary);" id="willSisterTotal">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 100%); border-left: 4px solid var(--green); margin-top: 16px;">
+        <h2>📊 สรุปมรดกทั้งหมด</h2>
+        <div class="grid-2" style="margin-top: 16px;">
+          <div class="info-box">
+            <div class="key">🇯🇵 Yuko Nakashita</div>
+            <div class="val" style="color: var(--green);" id="willYukoSummary">—</div>
+          </div>
+          <div class="info-box">
+            <div class="key">👩 จินฑารัตน์ เภาประเสริฐ</div>
+            <div class="val" style="color: var(--primary);" id="willSisterSummary">—</div>
+          </div>
+        </div>
+        <div class="info-box" style="margin-top: 12px; background: var(--bg-green); border-color: var(--green); border-width: 2px;">
+          <div class="key" style="color: var(--green);">💎 มรดกรวมทั้งหมด</div>
+          <div class="val" style="color: var(--green); font-size: 20px;" id="willGrandTotal">—</div>
+        </div>
+        <div style="font-size: 11px; color: var(--text-mute); margin-top: 12px;">
+          ⚠️ ตัวเลขอ้างอิงจากมูลค่าปัจจุบัน · ควรปรึกษาทนายความเพื่อความถูกต้องทางกฎหมาย
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-TAB: เลิกกัน -->
+    <div id="contingency-breakup" style="display: none;">
+      <div class="card" style="border-left: 4px solid #e11d48; margin-bottom: 16px;">
+        <h2>💔 แผนกรณีเลิกกัน (ก่อนแต่งงาน)</h2>
+        <p style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">
+          ทรัพย์สินร่วมทุน → ขายและแบ่งตามสัดส่วนที่ลงทุนจริง
+        </p>
+      </div>
+
+      <!-- ทรัพย์ร่วม -->
+      <div class="card" style="margin-bottom: 16px;">
+        <h2>🏠 ทรัพย์สินร่วมทุน (ต้องแบ่ง)</h2>
+
+        <!-- Nirvana -->
+        <div class="info-box" style="margin-top: 16px; border-left: 4px solid #d97706;">
+          <div class="key">🏡 บ้าน Nirvana Element Bangna</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+            <div style="background: #fff7ed; border-radius: 6px; padding: 8px;">
+              <div style="font-size: 11px; color: var(--text-mute);">Champ ออก (40%)</div>
+              <div style="font-weight: 700; color: #d97706;" id="breakupNirvanaChamp">—</div>
+            </div>
+            <div style="background: #fdf2f8; border-radius: 6px; padding: 8px;">
+              <div style="font-size: 11px; color: var(--text-mute);">Yuko ออก (60%)</div>
+              <div style="font-weight: 700; color: #9333ea;" id="breakupNirvanaYuko">—</div>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: var(--text-mute); margin-top: 8px;">
+            ขายบ้าน → แบ่งตามสัดส่วน Champ ฿4.4M : Yuko ฿6.6M
+          </div>
+        </div>
+
+        <!-- Keen -->
+        <div class="info-box" style="margin-top: 12px; border-left: 4px solid #1f6feb;">
+          <div class="key">🏢 Keen Condo Sriracha</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+            <div style="background: #eff6ff; border-radius: 6px; padding: 8px;">
+              <div style="font-size: 11px; color: var(--text-mute);">Champ ออก (34%)</div>
+              <div style="font-weight: 700; color: var(--primary);" id="breakupKeenChamp">—</div>
+            </div>
+            <div style="background: #fdf2f8; border-radius: 6px; padding: 8px;">
+              <div style="font-size: 11px; color: var(--text-mute);">Yuko ออก (66%)</div>
+              <div style="font-weight: 700; color: #9333ea;" id="breakupKeenYuko">—</div>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: var(--text-mute); margin-top: 8px;">
+            ขาย Condo → แบ่งตามสัดส่วน Champ ฿2.22M : Yuko ฿4.32M
+          </div>
+        </div>
+      </div>
+
+      <!-- สรุปหลังเลิก -->
+      <div class="card" style="background: linear-gradient(135deg, #fff1f2 0%, #fdf2f8 100%); border-left: 4px solid #e11d48;">
+        <h2>📊 สรุปหลังเลิกกัน</h2>
+        <div class="grid-2" style="margin-top: 16px;">
+          <div>
+            <h3 style="font-size: 13px; color: var(--text-soft); margin-bottom: 12px;">💙 Champ ได้รับ</h3>
+            <div class="info-box">
+              <div class="key">เงินจากขาย Nirvana (40%)</div>
+              <div class="val" style="color: var(--primary);" id="breakupChampNirvana">—</div>
+            </div>
+            <div class="info-box" style="margin-top: 8px;">
+              <div class="key">เงินจากขาย Keen (34%)</div>
+              <div class="val" style="color: var(--primary);" id="breakupChampKeen">—</div>
+            </div>
+            <div class="info-box" style="margin-top: 8px;">
+              <div class="key">ทรัพย์ส่วนตัว Champ</div>
+              <div class="val" style="color: var(--primary);" id="breakupChampPersonal">—</div>
+            </div>
+            <div class="info-box" style="margin-top: 8px; background: var(--bg-green); border-color: var(--green); border-width: 2px;">
+              <div class="key" style="color: var(--green);">💎 Net Worth Champ หลังเลิก</div>
+              <div class="val" style="color: var(--green); font-size: 18px;" id="breakupChampTotal">—</div>
+            </div>
+          </div>
+          <div>
+            <h3 style="font-size: 13px; color: var(--text-soft); margin-bottom: 12px;">💜 Yuko ได้รับคืน</h3>
+            <div class="info-box">
+              <div class="key">เงินจากขาย Nirvana (60%)</div>
+              <div class="val" style="color: #9333ea;" id="breakupYukoNirvana">—</div>
+            </div>
+            <div class="info-box" style="margin-top: 8px;">
+              <div class="key">เงินจากขาย Keen (66%)</div>
+              <div class="val" style="color: #9333ea;" id="breakupYukoKeen">—</div>
+            </div>
+            <div class="info-box" style="margin-top: 8px; background: #fdf2f8; border-color: #9333ea; border-width: 2px;">
+              <div class="key" style="color: #9333ea;">รวม Yuko ได้รับคืน</div>
+              <div class="val" style="color: #9333ea; font-size: 18px;" id="breakupYukoTotal">—</div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 11px; color: var(--text-mute); margin-top: 16px;">
+          ⚠️ ราคาขายจริงขึ้นอยู่กับตลาดอสังหาฯ ณ เวลานั้น · ตัวเลขนี้ใช้ราคาปัจจุบันเป็นฐาน
+        </div>
+      </div>
+    </div>
+
+  </div>
