@@ -1783,22 +1783,22 @@ function renderContingency() {
 
   // ── พินัยกรรม: Yuko ──
   const yukoItems = [
-    { name: 'บ้าน Nirvana Element Bangna', amount: nirvana, note: 'ตามพินัยกรรม' },
-    { name: 'ทองคำ', amount: gold, note: 'mark-to-market' },
-    { name: 'PVD TISCO (Daikin)', amount: pvd, note: 'mark-to-market' },
-    { name: 'กองทุนรวม (LTF+ESG+B-INNOTECH)', amount: funds, note: 'mark-to-market' },
+    { name: 'บ้าน Nirvana Element Bangna / ニルバーナ邸', amount: nirvana, note: '遺言書による / ตามพินัยกรรม' },
+    { name: 'ทองคำ / 金', amount: gold, note: '時価 / mark-to-market' },
+    { name: 'PVD TISCO (Daikin)', amount: pvd, note: '時価 / mark-to-market' },
+    { name: 'กองทุนรวม / 投資信託', amount: funds, note: '時価 / mark-to-market' },
   ];
   const yukoTotal = yukoItems.reduce((s, i) => s + i.amount, 0);
 
-  // ── พินัยกรรม: น้องสาว ──
+  // ── พินัยกรรม: พี่สาว ──
   const sisterItems = [
-    { name: 'Keen Condo Sriracha', amount: keen, note: 'ตามพินัยกรรม' },
-    { name: 'บัญชี KKP', amount: cash, note: 'mark-to-market' },
-    { name: 'รถ Mazda 2 Skyactiv', amount: car, note: 'ตามพินัยกรรม' },
-    { name: 'ประกันชีวิต AIA', amount: insurance, note: 'surrender value' },
-    { name: 'ที่ดินกาญจนบุรี (น.ส.3ก เลขที่ 417)', amount: landKanchanaburi, note: 'ประมาณการ' },
-    { name: 'ห้องชุดนครปฐม', amount: condoNakhon, note: 'ประมาณการ' },
-    { name: 'ที่ดินราชบุรี (โฉนด 60160)', amount: landRatchaburi, note: 'ประมาณการ' },
+    { name: 'Keen Condo Sriracha', amount: keen, note: '遺言書による / ตามพินัยกรรม' },
+    { name: 'บัญชี KKP / KKP銀行口座', amount: cash, note: '時価 / mark-to-market' },
+    { name: 'รถ Mazda 2 / マツダ2', amount: car, note: '遺言書による / ตามพินัยกรรม' },
+    { name: 'ประกันชีวิต AIA / AIA生命保険', amount: insurance, note: '解約返戻金 / surrender value' },
+    { name: 'ที่ดินกาญจนบุรี / カンチャナブリー土地', amount: landKanchanaburi, note: '概算 / ประมาณการ' },
+    { name: 'ห้องชุดนครปฐม / ナコーンパトム部屋', amount: condoNakhon, note: '概算 / ประมาณการ' },
+    { name: 'ที่ดินราชบุรี / ラーチャブリー土地', amount: landRatchaburi, note: '概算 / ประมาณการ' },
   ];
   const sisterTotal = sisterItems.reduce((s, i) => s + i.amount, 0);
 
