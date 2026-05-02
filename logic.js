@@ -735,7 +735,7 @@ renderList('expenseList', DATA.expenses, 'expense');
 
 // ── TAB 3: Balance Sheet ──
 renderKpis('balanceKpis', [
-  { label: 'สินทรัพย์รวม', value: fmt.bahtShort(totalAssets), color: 'primary', sub: `${DATA.assets.length} รายการ` },
+  { label: 'สินทรัพย์รวม', value: fmt.bahtShort(totalAssets), color: 'primary', sub: `ของ Champ จริงๆ: ${fmt.bahtShort(totalAssets - 6600000 - (6700000 - 2220000))}` },
   { label: 'หนี้สินรวม', value: fmt.bahtShort(totalLiabilities), color: 'red', sub: 'บ้าน Nirvana' },
   { label: 'NET WORTH', value: fmt.bahtShort(netWorth), color: 'green', sub: `Debt-to-Asset: ${fmt.pct(totalLiabilities/totalAssets*100)}` },
   { label: 'อสังหา (Net)', value: fmt.bahtShort(DATA.assets.filter(a => a.type === 'real_estate').reduce((s,a)=>s+a.amount,0) - totalLiabilities), color: 'amber', sub: 'หลังหักหนี้บ้าน' }
