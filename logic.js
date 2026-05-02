@@ -208,7 +208,6 @@ const DATA = {
     { name: "มูลค่าประกันออมทรัพย์",      amount: 281321,  type: "insurance", note: "Surrender value 3 กรมธรรม์" },
     { name: "หุ้นไทย",                 amount: 227847,  type: "investment", note: "TISCO + CPN + อื่นๆ · จาก Cash Sum" },
     { name: "Bitcoin / Crypto",        amount: 54876,   type: "investment", note: "เริ่ม Dec 2025 · จาก Cash Sum" },
-    { name: "Bitcoin / Crypto", amount: 54876, type: "investment", note: "เริ่ม Dec 2025 · จาก Cash Sum" },
     { name: "ที่ดินกาญจนบุรี (น.ส.3ก เลขที่ 417)", amount: 3000000, type: "real_estate", note: "มรดก · 1 งาน 70 ตร.วา · พินัยกรรมระบุพี่สาว" },
     { name: "ห้องชุดนครปฐม", amount: 400000, type: "real_estate", note: "มรดก · อาคาร B ชั้น 8 · พินัยกรรมระบุพี่สาว" },
     { name: "ที่ดินราชบุรี (โฉนด 60160)", amount: 300000, type: "real_estate", note: "มรดก · 1 ไร่ · พินัยกรรมระบุพี่สาว" }
@@ -1738,6 +1737,12 @@ const JA_REPLACEMENTS = [
   ['Champ ออก (34%)','Champ拠出（34%）'],
   ['Yuko ออก (66%)','Yuko拠出（66%）'],
   ['จินฑารัตน์ เภาประเสริฐ','Jinatarat Paoprasert'],
+  ['ที่ดินกาญจนบุรี (น.ส.3ก เลขที่ 417)','カンチャナブリー土地（証書No.417）'],
+  ['ห้องชุดนครปฐม','ナコーンパトム集合住宅'],
+  ['ที่ดินราชบุรี (โฉนด 60160)','ラーチャブリー土地（証書60160）'],
+  ['มรดก · 1 งาน 70 ตร.วา · พินัยกรรมระบุพี่สาว','相続 · 1งาน70平方ワー · 遺言書で姉に指定'],
+  ['มรดก · อาคาร B ชั้น 8 · พินัยกรรมระบุพี่สาว','相続 · B棟8階 · 遺言書で姉に指定'],
+  ['มรดก · 1 ไร่ · พินัยกรรมระบุพี่สาว','相続 · 1ライ · 遺言書で姉に指定'],
 ];
 function translateString(text, lang) {
   if (lang === 'th') return text;
