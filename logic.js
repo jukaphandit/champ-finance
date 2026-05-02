@@ -549,6 +549,7 @@ async function initDashboard() {
   // 3. โหลด timeline ประกันแบบรายปี แล้วค่อย render Dashboard ทั้งหมด
   await loadInsuranceDetailRows();
   renderDashboard();
+  renderContingency();
   initLanguageSwitcher();
 }
 
@@ -1732,3 +1733,125 @@ function initLanguageSwitcher() { setLanguage(CURRENT_LANG); }
 // 🎬 TAB SWITCHER (อยู่นอก renderDashboard เพื่อให้ใช้งานได้ทุกที่)
 // ============================================================
 // showTab() ย้ายไปอยู่ใน index.html แล้ว (รองรับ async fetch tabs)
+// ============================================================
+// 📋 CONTINGENCY PLAN — พินัยกรรม + เลิกกัน
+// ============================================================
+
+function showContingencyTab(tab) {
+  document.getElementById('contingency-will').style.display = tab === 'will' ? '' : 'none';
+  document.getElementById('contingency-breakup').style.display = tab === 'breakup' ? '' : 'none';
+
+  const willBtn = document.getElementById('ctab-will');
+  const breakBtn = document.getElementById('ctab-breakup');
+
+  if (tab === 'will') {
+    willBtn.style.background = 'var(--bg-green)';
+    willBtn.style.borderColor = 'var(--green)';
+    willBtn.style.color = 'var(--green)';
+    breakBtn.style.background = 'var(--bg)';
+    breakBtn.style.borderColor = 'var(--border)';
+    breakBtn.style.color = 'var(--text-soft)';
+  } else {
+    breakBtn.style.background = '#fff1f2';
+    breakBtn.style.borderColor = '#e11d48';
+    breakBtn.style.color = '#e11d48';
+    willBtn.style.background = 'var(--bg)';
+    willBtn.style.borderColor = 'var(--border)';
+    willBtn.style.color = 'var(--text-soft)';
+  }
+}
+
+function renderContingency() {
+  // ── ดึงค่า mark-to-market ──
+  const gold     = getVal('asset_gold', 0);
+  const pvd      = getVal('asset_pvd_tisco', 0);
+  const funds    = getVal('asset_funds_only', 0);
+  const cash     = getVal('asset_cash', 0);
+  const nirvana  = DATA.assets.find(a => a.name && a.name.includes('Nirvana'))?.amount || 11000000;
+  const keen     = DATA.assets.find(a => a.name && a.name.includes('Keen'))?.amount || 6700000;
+  const car      = DATA.assets.find(a => a.name && a.name.includes('Mazda'))?.amount || 350000;
+  const insurance = DATA.assets.find(a => a.name && a.name.includes('ประกัน'))?.amount || 0;
+
+  // hardcode ที่ดิน/ห้องชุด
+  const landKanchanaburi = 3000000;
+  const condoNakhon      = 400000;
+  const landRatchaburi   = 300000;
+
+  // Updated date
+  const updated = getStr('updated_date', '—');
+  if (document.getElementById('willUpdated')) document.getElementById('willUpdated').textContent = updated;
+
+  // ── พินัยกรรม: Yuko ──
+  const yukoItems = [
+    { name: 'บ้าน Nirvana Element Bangna', amount: nirvana, note: 'ตามพินัยกรรม' },
+    { name: 'ทองคำ', amount: gold, note: 'mark-to-market' },
+    { name: 'PVD TISCO (Daikin)', amount: pvd, note: 'mark-to-market' },
+    { name: 'กองทุนรวม (LTF+ESG+B-INNOTECH)', amount: funds, note: 'mark-to-market' },
+  ];
+  const yukoTotal = yukoItems.reduce((s, i) => s + i.amount, 0);
+
+  // ── พินัยกรรม: น้องสาว ──
+  const sisterItems = [
+    { name: 'Keen Condo Sriracha', amount: keen, note: 'ตามพินัยกรรม' },
+    { name: 'บัญชี KKP', amount: cash, note: 'mark-to-market' },
+    { name: 'รถ Mazda 2 Skyactiv', amount: car, note: 'ตามพินัยกรรม' },
+    { name: 'ประกันชีวิต AIA', amount: insurance, note: 'surrender value' },
+    { name: 'ที่ดินกาญจนบุรี (น.ส.3ก เลขที่ 417)', amount: landKanchanaburi, note: 'ประมาณการ' },
+    { name: 'ห้องชุดนครปฐม', amount: condoNakhon, note: 'ประมาณการ' },
+    { name: 'ที่ดินราชบุรี (โฉนด 60160)', amount: landRatchaburi, note: 'ประมาณการ' },
+  ];
+  const sisterTotal = sisterItems.reduce((s, i) => s + i.amount, 0);
+
+  // render lists
+  const renderWillList = (items) => items.map(i => `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-bottom: 1px solid var(--border);">
+      <div>
+        <div style="font-size:13px; font-weight:500;">${i.name}</div>
+        <div style="font-size:11px; color:var(--text-mute);">${i.note}</div>
+      </div>
+      <div style="font-weight:600; font-family:'JetBrains Mono',monospace;">${fmt.baht(i.amount)}</div>
+    </div>
+  `).join('');
+
+  if (document.getElementById('willYukoList'))
+    document.getElementById('willYukoList').innerHTML = renderWillList(yukoItems);
+  if (document.getElementById('willSisterList'))
+    document.getElementById('willSisterList').innerHTML = renderWillList(sisterItems);
+
+  if (document.getElementById('willYukoTotal'))
+    document.getElementById('willYukoTotal').textContent = fmt.baht(yukoTotal);
+  if (document.getElementById('willSisterTotal'))
+    document.getElementById('willSisterTotal').textContent = fmt.baht(sisterTotal);
+  if (document.getElementById('willYukoSummary'))
+    document.getElementById('willYukoSummary').textContent = fmt.bahtShort(yukoTotal);
+  if (document.getElementById('willSisterSummary'))
+    document.getElementById('willSisterSummary').textContent = fmt.bahtShort(sisterTotal);
+  if (document.getElementById('willGrandTotal'))
+    document.getElementById('willGrandTotal').textContent = fmt.baht(yukoTotal + sisterTotal);
+
+  // ── เลิกกัน ──
+  const nirvanaChamp = nirvana * 0.40;
+  const nirvanaYuko  = nirvana * 0.60;
+  const keenChamp    = keen * 0.34;
+  const keenYuko     = keen * 0.66;
+
+  // ทรัพย์ส่วนตัว Champ (ไม่รวม Nirvana, Keen)
+  const champPersonal = gold + pvd + funds + cash + car + insurance;
+  const champAfterBreakup = nirvanaChamp + keenChamp + champPersonal;
+  const yukoAfterBreakup  = nirvanaYuko + keenYuko;
+
+  const setEl = (id, val) => { if (document.getElementById(id)) document.getElementById(id).textContent = val; };
+
+  setEl('breakupNirvanaChamp', fmt.baht(nirvanaChamp));
+  setEl('breakupNirvanaYuko',  fmt.baht(nirvanaYuko));
+  setEl('breakupKeenChamp',    fmt.baht(keenChamp));
+  setEl('breakupKeenYuko',     fmt.baht(keenYuko));
+  setEl('breakupChampNirvana', fmt.baht(nirvanaChamp));
+  setEl('breakupChampKeen',    fmt.baht(keenChamp));
+  setEl('breakupChampPersonal',fmt.baht(champPersonal));
+  setEl('breakupChampTotal',   fmt.baht(champAfterBreakup));
+  setEl('breakupYukoNirvana',  fmt.baht(nirvanaYuko));
+  setEl('breakupYukoKeen',     fmt.baht(keenYuko));
+  setEl('breakupYukoTotal',    fmt.baht(yukoAfterBreakup));
+}
+
