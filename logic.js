@@ -207,7 +207,11 @@ const DATA = {
     { name: "รถ Mazda 2 Skyactiv",     amount: 350000,  type: "hard_asset", note: "ปี 2017" },
     { name: "มูลค่าประกันออมทรัพย์",      amount: 281321,  type: "insurance", note: "Surrender value 3 กรมธรรม์" },
     { name: "หุ้นไทย",                 amount: 227847,  type: "investment", note: "TISCO + CPN + อื่นๆ · จาก Cash Sum" },
-    { name: "Bitcoin / Crypto",        amount: 54876,   type: "investment", note: "เริ่ม Dec 2025 · จาก Cash Sum" }
+    { name: "Bitcoin / Crypto",        amount: 54876,   type: "investment", note: "เริ่ม Dec 2025 · จาก Cash Sum" },
+    { name: "Bitcoin / Crypto", amount: 54876, type: "investment", note: "เริ่ม Dec 2025 · จาก Cash Sum" },
+    { name: "ที่ดินกาญจนบุรี (น.ส.3ก เลขที่ 417)", amount: 3000000, type: "real_estate", note: "มรดก · 1 งาน 70 ตร.วา · พินัยกรรมระบุพี่สาว" },
+    { name: "ห้องชุดนครปฐม", amount: 400000, type: "real_estate", note: "มรดก · อาคาร B ชั้น 8 · พินัยกรรมระบุพี่สาว" },
+    { name: "ที่ดินราชบุรี (โฉนด 60160)", amount: 300000, type: "real_estate", note: "มรดก · 1 ไร่ · พินัยกรรมระบุพี่สาว" }
   ],
 
   // ── หนี้สิน (THB) ─────────────────────
@@ -1811,9 +1815,9 @@ function renderContingency() {
   const insurance = DATA.assets.find(a => a.name && a.name.includes('ประกัน'))?.amount || 0;
 
   // hardcode ที่ดิน/ห้องชุด
-  const landKanchanaburi = 3000000;
-  const condoNakhon      = 400000;
-  const landRatchaburi   = 300000;
+  const landKanchanaburi = DATA.assets.find(a => a.name && a.name.includes('กาญจนบุรี'))?.amount || 3000000;
+  const condoNakhon      = DATA.assets.find(a => a.name && a.name.includes('นครปฐม'))?.amount || 400000;
+  const landRatchaburi   = DATA.assets.find(a => a.name && a.name.includes('ราชบุรี'))?.amount || 300000;
 
   // Updated date
   const updated = getStr('updated_date', '—');
