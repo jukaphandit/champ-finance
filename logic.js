@@ -742,6 +742,10 @@ renderKpis('balanceKpis', [
 ]);
 
 document.getElementById('assetsTotal').textContent = fmt.baht(totalAssets);
+document.getElementById('assetsChampOnly').textContent = 
+  '(ส่วนของ Champ จริงๆ: ' + fmt.bahtShort(
+    totalAssets - 6600000 - (6700000 - 2220000)
+  ) + ')';
 document.getElementById('liabilitiesTotal').textContent = '−' + fmt.baht(totalLiabilities);
 document.getElementById('netWorthValue').textContent = fmt.baht(netWorth);
 renderList('assetsList', DATA.assets);
