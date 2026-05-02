@@ -646,7 +646,8 @@ const debtPaydown = 10343;       // โป๊ะหนี้
 const pvdSelfMonth = 9942;       // ออมทรัพย์ฝากเอง
 const pvdCompanyMonth = 6628;    // ไดกิ้นสมทบ
 // ⚠️ Wealth Building = เงินสะสมระยะยาว (ไม่นับ cash เหลือ)
-const totalWealthMonthly = stockSaving + debtPaydown + pvdSelfMonth + pvdCompanyMonth;
+const totalWealthMonthly = stockSaving + debtPaydown + pvdSelfMonth;
+const totalWealthWithCompany = totalWealthMonthly + pvdCompanyMonth;
 
 // โบนัสเฉลี่ยต่อเดือน
 const annualBonus = DATA.bonusHistory.find(b => b.current).dec;
@@ -656,7 +657,7 @@ const cashFlowWithBonus = cashFlowOnly + bonusMonthlyAvg;
 
 renderKpis('overviewKpis', [
   { label: 'NET WORTH', value: fmt.bahtShort(netWorth), color: 'primary', sub: 'Assets − Liabilities' },
-  { label: 'WEALTH BUILDING / เดือน', value: fmt.bahtShort(totalWealthMonthly), color: 'green', sub: `รวมโบนัสเฉลี่ย: ${fmt.bahtShort(totalWealthWithBonus)}/เดือน` },
+  { label: 'WEALTH BUILDING / เดือน', value: fmt.bahtShort(totalWealthMonthly), color: 'green', sub: `รวมไดกิ้นสมทบ: ${fmt.bahtShort(totalWealthWithCompany)}/เดือน` },
   { label: 'CASH เหลือใช้สด / เดือน', value: '+' + fmt.bahtShort(cashFlowOnly), color: 'amber', sub: `รวมโบนัสเฉลี่ย: ${fmt.bahtShort(cashFlowWithBonus)}/เดือน · ใช้ส่วนตัว/ฉุกเฉิน` },
   { label: 'หนี้สินคงเหลือ', value: fmt.bahtShort(totalLiabilities), color: 'red', sub: 'บ้าน Nirvana KKP' }
 ]);
@@ -668,6 +669,7 @@ document.getElementById('wbDebt').textContent = '+' + fmt.baht(debtPaydown) + ' 
 document.getElementById('wbPvdSelf').textContent = '+' + fmt.baht(pvdSelfMonth) + ' / เดือน';
 document.getElementById('wbPvdCompany').textContent = '+' + fmt.baht(pvdCompanyMonth) + ' / เดือน';
 document.getElementById('wbTotal').textContent = '+' + fmt.baht(totalWealthMonthly) + ' / เดือน';
+document.getElementById('wbTotalWithCompany') && (document.getElementById('wbTotalWithCompany').textContent = '(รวมไดกิ้นสมทบ: +' + fmt.baht(totalWealthWithCompany) + ' / เดือน)');
 
 document.getElementById('wbBonusMonthly').textContent = '+' + fmt.baht(Math.round(bonusMonthlyAvg)) + ' / เดือน';
 document.getElementById('wbTotalWithBonus').textContent = '+' + fmt.baht(Math.round(totalWealthWithBonus)) + ' / เดือน';
